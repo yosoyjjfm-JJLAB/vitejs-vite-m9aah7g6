@@ -1,35 +1,32 @@
 import emailjs from 'emailjs-com';
 
-// Inicializa con tu User ID de EmailJS
-// emailjs.init("YOUR_USER_ID");
+// Inicializa con tu Public Key de EmailJS
+emailjs.init("09tN9vhFRcwNh08qC");
 
 export const sendTicketEmail = async (ticketData, pdfUrl) => {
-    try {
-        console.log('Intentando enviar correo a:', ticketData.customerEmail);
-        console.log('Link del PDF:', pdfUrl);
+  try {
+    console.log('Enviando correo a:', ticketData.customerEmail);
 
-        // Descomentar y configurar para usar EmailJS real
-        /*
-        const templateParams = {
-          to_email: ticketData.customerEmail,
-          customer_name: ticketData.customerName,
-          device_model: ticketData.deviceModel,
-          pdf_link: pdfUrl,
-          reply_to: "tecnico@jjlabtecnologiacreativa.com"
-        };
-    
-        const response = await emailjs.send(
-          'YOUR_SERVICE_ID',
-          'YOUR_TEMPLATE_ID',
-          templateParams
-        );
-        return response;
-        */
+    const templateParams = {
+      to_email: ticketData.customerEmail,
+      customer_name: ticketData.customerName,
+      device_model: ticketData.deviceModel,
+      pdf_link: pdfUrl,
+      // Variables opcionales si las usaste en el template
+      reply_to: "jjlab2020@gmail.com"
+    };
 
-        // Simulación exitosa
-        return { status: 200, text: 'OK (Simulado)' };
-    } catch (error) {
-        console.error('Error al enviar correo:', error);
-        throw error;
-    }
+    const response = await emailjs.send(
+      'service_0dnuvku',   // Service ID
+      'template_c6bwmes',  // Template ID
+      templateParams
+    );
+
+    console.log('Correo enviado con éxito!', response.status, response.text);
+    return response;
+
+  } catch (error) {
+    console.error('Error al enviar correo:', error);
+    throw error;
+  }
 };
