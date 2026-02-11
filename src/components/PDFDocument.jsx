@@ -115,12 +115,16 @@ const PDFDocument = ({ data }) => (
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.logoSection}>
-                    <Text style={styles.logoText}>JJLAB</Text>
+                    {/* Usamos window.location.origin para asegurar la ruta completa al generar el BLOB */}
+                    <Image
+                        src={window.location.origin + '/logo.png'}
+                        style={{ width: 120, height: 60, objectFit: 'contain', marginBottom: 5 }}
+                    />
                     <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                 </View>
                 <View style={styles.invoiceInfo}>
                     <Text style={styles.label}>DICTAMEN TÉCNICO NO.</Text>
-                    <Text style={styles.value}>#{data.id || 'BORRADOR'}</Text>
+                    <Text style={styles.value}>#{data.id ? data.id.slice(-6).toUpperCase() : 'BORRADOR'}</Text>
                     <Text style={styles.label}>FECHA DE EMISIÓN</Text>
                     <Text style={styles.value}>{new Date().toLocaleDateString()}</Text>
                 </View>
@@ -176,7 +180,7 @@ const PDFDocument = ({ data }) => (
             {/* Footer */}
             <View style={styles.footer}>
                 <Text style={styles.footerText}>
-                    JJLAB Tecnología Creativa | www.JJLABtecnologiacreativa.com | contacto@jjlab.com
+                    JJLAB Tecnología Creativa
                 </Text>
             </View>
         </Page>
@@ -187,7 +191,7 @@ const PDFDocument = ({ data }) => (
                 <View style={styles.header}>
                     <View style={styles.logoSection}>
                         <Text style={styles.logoText}>Anexo Fotográfico</Text>
-                        <Text style={styles.subLogoText}>Evidencia del Servicio #{data.id}</Text>
+                        <Text style={styles.subLogoText}>Evidencia del Servicio #{data.id ? data.id.slice(-6).toUpperCase() : ''}</Text>
                     </View>
                 </View>
 
@@ -201,7 +205,7 @@ const PDFDocument = ({ data }) => (
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        JJLAB Tecnología Creativa | www.JJLABtecnologiacreativa.com | contacto@jjlab.com
+                        JJLAB Tecnología Creativa
                     </Text>
                 </View>
             </Page>
