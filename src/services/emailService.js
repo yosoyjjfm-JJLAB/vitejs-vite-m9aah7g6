@@ -11,6 +11,7 @@ export const sendTicketEmail = async (ticketData, pdfUrl) => {
       email: ticketData.customerEmail, // Cambiado de to_email porque tu template usa {{email}}
       customer_name: ticketData.customerName,
       device_model: ticketData.deviceModel,
+      service_type: ticketData.serviceType || 'Servicio Técnico', // Para el asunto
       pdf_link: pdfUrl,
       cc_emails: ticketData.ccEmails, // Nuevo campo para CC
       // Variables opcionales si las usaste en el template
