@@ -12,6 +12,7 @@ export const sendTicketEmail = async (ticketData, pdfUrl) => {
       customer_name: ticketData.customerName,
       device_model: ticketData.deviceModel,
       pdf_link: pdfUrl,
+      cc_emails: ticketData.ccEmails, // Nuevo campo para CC
       // Variables opcionales si las usaste en el template
       reply_to: "jjlab2020@gmail.com"
     };

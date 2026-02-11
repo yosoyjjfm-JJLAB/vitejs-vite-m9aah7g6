@@ -123,6 +123,7 @@ const PDFDocument = ({ data }) => (
                     <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                 </View>
                 <View style={styles.invoiceInfo}>
+                    <Text style={[styles.label, { color: '#3b82f6', fontWeight: 'bold' }]}>{data.serviceType?.toUpperCase() || 'SERVICIO TÉCNICO'}</Text>
                     <Text style={styles.label}>DICTAMEN TÉCNICO NO.</Text>
                     <Text style={styles.value}>#{data.id ? data.id.slice(-6).toUpperCase() : 'BORRADOR'}</Text>
                     <Text style={styles.label}>FECHA DE EMISIÓN</Text>
@@ -171,6 +172,13 @@ const PDFDocument = ({ data }) => (
                 <Text style={[styles.label, { marginBottom: 4 }]}>SOLUCIÓN APLICADA / RECOMENDADA:</Text>
                 <Text style={styles.text}>{data.solution || 'Pendiente de reparación.'}</Text>
             </View>
+
+            {data.estimatedLife && (
+                <View style={{ marginBottom: 15, padding: 8, backgroundColor: '#eff6ff', borderRadius: 4 }}>
+                    <Text style={[styles.label, { marginBottom: 4, color: '#1e40af' }]}>TIEMPO DE VIDA ÚTIL ESTIMADO:</Text>
+                    <Text style={[styles.text, { color: '#1e3a8a' }]}>{data.estimatedLife}</Text>
+                </View>
+            )}
 
             {/* Status */}
             <View style={styles.statusBadge}>

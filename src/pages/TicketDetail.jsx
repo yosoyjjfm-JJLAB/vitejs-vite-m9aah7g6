@@ -51,7 +51,14 @@ const TicketDetail = () => {
                 diagnosis: ticket.diagnosis || '',
                 solution: ticket.solution || '',
                 photos: ticket.photos || [],
-                status: ticket.status || 'Pendiente'
+                diagnosis: ticket.diagnosis || '',
+                solution: ticket.solution || '',
+                photos: ticket.photos || [],
+                status: ticket.status || 'Pendiente',
+                estimatedLife: ticket.estimatedLife || '',
+                serviceType: ticket.serviceType || 'Mantenimiento Correctivo',
+                ccEmails: ticket.ccEmails || '',
+                estimatedLife: ticket.estimatedLife || ''
             });
             alert('Cambios guardados correctamente');
         } catch (error) {
@@ -158,6 +165,16 @@ const TicketDetail = () => {
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Detalles del Servicio</h2>
                                 <p className="text-sm text-slate-400">ID: {ticket.id}</p>
+                                {/* Selector Tipo de Servicio */}
+                                <select
+                                    className="mt-1 text-xs font-semibold bg-blue-50 text-blue-700 border-none rounded focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer p-1"
+                                    value={ticket.serviceType || 'Mantenimiento Correctivo'}
+                                    onChange={(e) => setTicket({ ...ticket, serviceType: e.target.value })}
+                                >
+                                    <option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option>
+                                    <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
+                                    <option value="Diagnóstico General">Diagnóstico General</option>
+                                </select>
                             </div>
                             <select
                                 className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-none focus:ring-2 focus:ring-green-500 outline-none cursor-pointer"
@@ -188,6 +205,16 @@ const TicketDetail = () => {
                                     />
                                 </div>
                                 <p className="text-sm text-slate-500 mt-1">{ticket.customerEmail} • {ticket.customerPhone}</p>
+                                {/* Campo CC Emails */}
+                                <div className="mt-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase">CC Correos (Separa con comas)</label>
+                                    <input
+                                        className="text-xs text-slate-600 border rounded p-1 w-full bg-slate-50"
+                                        placeholder="jefe@empresa.com, socio@empresa.com"
+                                        value={ticket.ccEmails || ''}
+                                        onChange={(e) => setTicket({ ...ticket, ccEmails: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             <div>
@@ -218,6 +245,22 @@ const TicketDetail = () => {
                                     rows="3"
                                     value={ticket.solution || ''}
                                     onChange={(e) => setTicket({ ...ticket, solution: e.target.value })}
+                                ></textarea>
+                            </div>
+
+                            {/* Nuevo Campo: Vida Útil Estimada */}
+                            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <label className="flex justify-between items-center text-xs font-bold text-indigo-800 uppercase">
+                                    <span>Tiempo de Vida Estimado (IA)</span>
+                                    {/* Botón placeholder para la futura integración IA */}
+                                    {/* <button className="text-xs bg-indigo-600 text-white px-2 py-1 rounded flex items-center gap-1">✨ Calcular</button> */}
+                                </label>
+                                <textarea
+                                    className="w-full mt-2 p-2 border border-indigo-200 rounded-md text-sm text-slate-700 bg-white"
+                                    rows="1"
+                                    placeholder="Ej. 2 años si se mantiene el mantenimiento..."
+                                    value={ticket.estimatedLife || ''}
+                                    onChange={(e) => setTicket({ ...ticket, estimatedLife: e.target.value })}
                                 ></textarea>
                             </div>
 
