@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building } from 'lucid
 import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
 import { uploadPDF, uploadTicketPhoto } from '../services/storageService';
+import { estimateLifespan } from '../services/aiService';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -15,6 +16,7 @@ const TicketDetail = () => {
     const [emailStatus, setEmailStatus] = useState('idle');
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [estimating, setEstimating] = useState(false);
 
     // Cargar datos reales de Firestore
     useEffect(() => {
@@ -116,6 +118,35 @@ const TicketDetail = () => {
             alert("Error al subir imagen");
         } finally {
             setUploadingPhoto(false);
+        }
+    };
+
+    const handleEstimateLife = async () => {
+        if (!ticket.photos || ticket.photos.length === 0) {
+            alert("Sube al menos una foto para que la IA pueda analizar el equipo.");
+            return;
+        }
+
+        setEstimating(true);
+        try {
+            // Tomamos la primera foto para el análisis (por simplicidad)
+            // Nota: En un entorno real, tendríamos que pasar el File object o descargar la imagen.
+            // Como las fotos son URLs de Firebase, necesitamos obtener el Blob primero.
+            const response = await fetch(ticket.photos[0]);
+            const blob = await response.blob();
+            const file = new File([blob], "evidence.jpg", { type: blob.type });
+
+            const estimation = await estimateLifespan(file, `${ticket.deviceType} ${ticket.deviceModel}`, ticket.problemDescription);
+
+            setTicket(prev => ({
+                ...prev,
+                estimatedLife: estimation
+            }));
+        } catch (error) {
+            console.error("Error estimando vida útil:", error);
+            alert("No se pudo conectar con la IA. Verifica tu conexión o la API Key.");
+        } finally {
+            setEstimating(false);
         }
     };
 
@@ -252,8 +283,13 @@ const TicketDetail = () => {
                             <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
                                 <label className="flex justify-between items-center text-xs font-bold text-indigo-800 uppercase">
                                     <span>Tiempo de Vida Estimado (IA)</span>
-                                    {/* Botón placeholder para la futura integración IA */}
-                                    {/* <button className="text-xs bg-indigo-600 text-white px-2 py-1 rounded flex items-center gap-1">✨ Calcular</button> */}
+                                    <button
+                                        onClick={handleEstimateLife}
+                                        disabled={estimating}
+                                        className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded flex items-center gap-1 transition-colors"
+                                    >
+                                        {estimating ? 'Analizando...' : '✨ Calcular con IA'}
+                                    </button>
                                 </label>
                                 <textarea
                                     className="w-full mt-2 p-2 border border-indigo-200 rounded-md text-sm text-slate-700 bg-white"
