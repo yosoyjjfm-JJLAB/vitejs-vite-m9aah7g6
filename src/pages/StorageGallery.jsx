@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Calendar, FileText, Image as ImageIcon, Download } from 'lucide-react';
+import { Search, Calendar, FileText, Image as ImageIcon, Download, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StorageGallery = () => {
