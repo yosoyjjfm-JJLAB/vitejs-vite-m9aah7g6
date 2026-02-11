@@ -65,20 +65,17 @@ const TicketDetail = () => {
     const handleSendEmail = async () => {
         setEmailStatus('sending');
         try {
-            // Generar PDF y subirlo (simulado el blob aquí, idealmente usar usePDF de react-pdf)
-            const fakeBlob = new Blob(['PDF Placeholder'], { type: 'application/pdf' });
-            // Nota: Para subir el PDF real generado por @react-pdf/renderer se necesita un paso extra.
-            // Por simplicidad y rapidez, subimos un placeholder o el link directo si ya existiera.
-            // En producción real, se recomienda generar el blob con pdf(<PDFDocument />).toBlob()
+            // Generar el BLOB real del PDF usando @react-pdf
+            const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
 
-            // Para este ejemplo, subimos un archivo dummy para obtener una URL válida
-            const url = await uploadPDF(fakeBlob, id);
+            // Subir el PDF real a Firebase Storage
+            const url = await uploadPDF(blob, id);
 
             await sendTicketEmail(ticket, url);
             setEmailStatus('success');
             setTimeout(() => setEmailStatus('idle'), 3000);
         } catch (error) {
-            console.error(error);
+            console.error("Error al generar/enviar PDF:", error);
             setEmailStatus('error');
         }
     };
