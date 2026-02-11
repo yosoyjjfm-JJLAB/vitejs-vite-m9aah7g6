@@ -15,7 +15,7 @@ const Layout = () => {
             <aside className="w-full md:w-64 bg-slate-900 text-white flex-shrink-0">
                 <div className="p-6 border-b border-slate-800">
                     <div className="flex items-center gap-3">
-                        <Wrench className="w-8 h-8 text-blue-500" />
+                        <img src="/logo.png" alt="JJLAB Logo" className="w-12 h-12 object-contain" />
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">JJLAB Admin</h1>
                             <p className="text-xs text-slate-400">Tecnología Creativa</p>

@@ -1,31 +1,60 @@
-import React, { useState } from 'react';
-import { Search, Calendar, FileText, Image as ImageIcon, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Calendar, FileText, Image as ImageIcon, Download, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const StorageGallery = () => {
     // Estado para filtros
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [files, setFiles] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Datos simulados (mock) que en realidad vendrían de Firestore
-    const mockFiles = [
-        { id: '1', date: '2023-10-25', customer: 'Juan Pérez', company: 'Tech Solutions', device: 'Laptop Dell', photos: 2 },
-        { id: '2', date: '2023-10-26', customer: 'María López', company: '', device: 'iPhone 13', photos: 0 },
-        { id: '3', date: '2023-10-24', customer: 'Carlos Ruiz', company: 'Hotel Las Palmas', device: 'Smart TV', photos: 5 },
-        { id: '4', date: '2023-11-01', customer: 'Ana García', company: 'Tech Solutions', device: 'Tablet Samsung', photos: 1 },
-    ];
+    useEffect(() => {
+        const fetchFiles = async () => {
+            try {
+                // Traer todos los tickets ordenados por fecha
+                const q = query(collection(db, "tickets"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+
+                const loadedFiles = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    loadedFiles.push({
+                        id: doc.id,
+                        date: data.createdAt?.toDate().toISOString().split('T')[0] || '', // YYYY-MM-DD
+                        customer: data.customerName || 'Sin Nombre',
+                        company: data.customerCompany || '',
+                        device: `${data.deviceType} ${data.deviceModel}`,
+                        photos: data.photos ? data.photos.length : 0
+                    });
+                });
+                setFiles(loadedFiles);
+            } catch (error) {
+                console.error("Error fetching files:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFiles();
+    }, []);
 
     // Lógica de filtrado
-    const filteredFiles = mockFiles.filter(file => {
+    const filteredFiles = files.filter(file => {
+        const term = searchTerm.toLowerCase();
         const matchesSearch =
-            file.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            file.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            file.device.toLowerCase().includes(searchTerm.toLowerCase());
+            file.customer.toLowerCase().includes(term) ||
+            file.company.toLowerCase().includes(term) ||
+            file.device.toLowerCase().includes(term);
 
         const matchesDate = dateFilter ? file.date === dateFilter : true;
 
         return matchesSearch && matchesDate;
     });
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Cargando galería...</div>;
 
     return (
         <div className="space-y-6">
@@ -110,7 +139,7 @@ const StorageGallery = () => {
                 </table>
                 {filteredFiles.length === 0 && (
                     <div className="p-8 text-center text-slate-500">
-                        No se encontraron archivos con esos filtros.
+                        {files.length === 0 ? "No hay registros guardados." : "No se encontraron archivos con esos filtros."}
                     </div>
                 )}
             </div>
