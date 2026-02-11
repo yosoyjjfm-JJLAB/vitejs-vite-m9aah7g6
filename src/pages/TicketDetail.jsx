@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building } from 'lucide-react';
 import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
