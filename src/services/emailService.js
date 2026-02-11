@@ -8,7 +8,7 @@ export const sendTicketEmail = async (ticketData, pdfUrl) => {
     console.log('Enviando correo a:', ticketData.customerEmail);
 
     const templateParams = {
-      to_email: ticketData.customerEmail,
+      email: ticketData.customerEmail, // Cambiado de to_email porque tu template usa {{email}}
       customer_name: ticketData.customerName,
       device_model: ticketData.deviceModel,
       pdf_link: pdfUrl,
