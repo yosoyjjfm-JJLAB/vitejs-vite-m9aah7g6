@@ -47,7 +47,11 @@ const TicketDetail = () => {
                 customerCompany: ticket.customerCompany || '',
                 diagnosis: ticket.diagnosis || '',
                 solution: ticket.solution || '',
-                photos: ticket.photos || []
+                customerCompany: ticket.customerCompany || '',
+                diagnosis: ticket.diagnosis || '',
+                solution: ticket.solution || '',
+                photos: ticket.photos || [],
+                status: ticket.status || 'Pendiente'
             });
             alert('Cambios guardados correctamente');
         } catch (error) {
@@ -158,9 +162,18 @@ const TicketDetail = () => {
                                 <h2 className="text-xl font-bold text-slate-800">Detalles del Servicio</h2>
                                 <p className="text-sm text-slate-400">ID: {ticket.id}</p>
                             </div>
-                            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                                {ticket.status}
-                            </span>
+                            <select
+                                className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-none focus:ring-2 focus:ring-green-500 outline-none cursor-pointer"
+                                value={ticket.status}
+                                onChange={(e) => setTicket({ ...ticket, status: e.target.value })}
+                            >
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Diagnóstico">Diagnóstico</option>
+                                <option value="En Reparación">En Reparación</option>
+                                <option value="Listo">Listo</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Entregado">Entregado</option>
+                            </select>
                         </div>
 
                         <div className="space-y-4">
