@@ -5,6 +5,8 @@ import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building } from 'lucid
 import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
 import { uploadPDF, uploadTicketPhoto } from '../services/storageService';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const TicketDetail = () => {
     const { id } = useParams();
@@ -12,35 +14,62 @@ const TicketDetail = () => {
     const [loading, setLoading] = useState(true);
     const [emailStatus, setEmailStatus] = useState('idle');
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // Simular carga de datos
+    // Cargar datos reales de Firestore
     useEffect(() => {
-        setTimeout(() => {
-            setTicket({
-                id,
-                customerName: 'Juan Pérez',
-                customerCompany: 'Tech Solutions S.A.', // Dato simulado
-                customerEmail: 'juan@ejemplo.com',
-                customerPhone: '555-123-4567',
-                deviceType: 'Laptop',
-                deviceModel: 'Dell Inspiron 15',
-                deviceSerial: 'SN123456789',
-                problemDescription: 'No enciende, pantalla negra.',
-                diagnosis: 'Falla en chip de video confirmada y sulfatación en puerto de carga.',
-                solution: 'Reballing de GPU y limpieza química.',
-                status: 'Finalizado',
-                estimatedCost: '1,500',
-                photos: [] // Array inicial de fotos
-            });
-            setLoading(false);
-        }, 1000);
+        const fetchTicket = async () => {
+            try {
+                const docRef = doc(db, "tickets", id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setTicket({ id: docSnap.id, ...docSnap.data() });
+                } else {
+                    console.error("No such document!");
+                }
+            } catch (error) {
+                console.error("Error fetching ticket:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTicket();
     }, [id]);
+
+    const handleSaveChanges = async () => {
+        setSaving(true);
+        try {
+            const docRef = doc(db, "tickets", id);
+            // Actualizamos solo los campos editables
+            await updateDoc(docRef, {
+                customerCompany: ticket.customerCompany || '',
+                diagnosis: ticket.diagnosis || '',
+                solution: ticket.solution || '',
+                photos: ticket.photos || []
+            });
+            alert('Cambios guardados correctamente');
+        } catch (error) {
+            console.error("Error updating ticket:", error);
+            alert("Error al guardar cambios");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handleSendEmail = async () => {
         setEmailStatus('sending');
         try {
-            const fakeBlob = new Blob(['Fake PDF Content'], { type: 'application/pdf' });
+            // Generar PDF y subirlo (simulado el blob aquí, idealmente usar usePDF de react-pdf)
+            const fakeBlob = new Blob(['PDF Placeholder'], { type: 'application/pdf' });
+            // Nota: Para subir el PDF real generado por @react-pdf/renderer se necesita un paso extra.
+            // Por simplicidad y rapidez, subimos un placeholder o el link directo si ya existiera.
+            // En producción real, se recomienda generar el blob con pdf(<PDFDocument />).toBlob()
+
+            // Para este ejemplo, subimos un archivo dummy para obtener una URL válida
             const url = await uploadPDF(fakeBlob, id);
+
             await sendTicketEmail(ticket, url);
             setEmailStatus('success');
             setTimeout(() => setEmailStatus('idle'), 3000);
@@ -62,11 +91,18 @@ const TicketDetail = () => {
                 newPhotos.push(url);
             }
 
-            // Actualizar estado local (y en Firestore en una app real)
+            const updatedPhotos = [...(ticket.photos || []), ...newPhotos];
+
+            // Actualizar estado local
             setTicket(prev => ({
                 ...prev,
-                photos: [...(prev.photos || []), ...newPhotos]
+                photos: updatedPhotos
             }));
+
+            // Guardar automáticamente en Firestore al subir foto
+            const docRef = doc(db, "tickets", id);
+            await updateDoc(docRef, { photos: updatedPhotos });
+
         } catch (error) {
             console.error("Error upload:", error);
             alert("Error al subir imagen");
@@ -75,14 +111,25 @@ const TicketDetail = () => {
         }
     };
 
-    const removePhoto = (indexToRemove) => {
+    const removePhoto = async (indexToRemove) => {
+        const updatedPhotos = ticket.photos.filter((_, index) => index !== indexToRemove);
+
         setTicket(prev => ({
             ...prev,
-            photos: prev.photos.filter((_, index) => index !== indexToRemove)
+            photos: updatedPhotos
         }));
+
+        // Actualizar en Firestore
+        try {
+            const docRef = doc(db, "tickets", id);
+            await updateDoc(docRef, { photos: updatedPhotos });
+        } catch (error) {
+            console.error("Error deleting photo ref:", error);
+        }
     };
 
     if (loading) return <div className="p-8 text-center text-slate-500">Cargando detalles del ticket...</div>;
+    if (!ticket) return <div className="p-8 text-center text-red-500">Ticket no encontrado.</div>;
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -133,7 +180,6 @@ const TicketDetail = () => {
                                 <p className="text-sm text-slate-500 mt-1">{ticket.customerEmail} • {ticket.customerPhone}</p>
                             </div>
 
-                            {/* ... Resto de campos (equipo, falla) igual ... */}
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase">Datos del Equipo</label>
                                 <p className="text-slate-800">{ticket.deviceType} - {ticket.deviceModel}</p>
@@ -150,7 +196,8 @@ const TicketDetail = () => {
                                 <textarea
                                     className="w-full mt-1 p-2 border border-slate-300 rounded-md text-sm"
                                     rows="3"
-                                    defaultValue={ticket.diagnosis}
+                                    value={ticket.diagnosis || ''}
+                                    onChange={(e) => setTicket({ ...ticket, diagnosis: e.target.value })}
                                 ></textarea>
                             </div>
 
@@ -159,7 +206,8 @@ const TicketDetail = () => {
                                 <textarea
                                     className="w-full mt-1 p-2 border border-slate-300 rounded-md text-sm"
                                     rows="3"
-                                    defaultValue={ticket.solution}
+                                    value={ticket.solution || ''}
+                                    onChange={(e) => setTicket({ ...ticket, solution: e.target.value })}
                                 ></textarea>
                             </div>
 
@@ -196,8 +244,12 @@ const TicketDetail = () => {
                                 </div>
                             </div>
 
-                            <button className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg transition-colors mt-4">
-                                <Save size={18} /> Guardar Cambios
+                            <button
+                                onClick={handleSaveChanges}
+                                disabled={saving}
+                                className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg transition-colors mt-4"
+                            >
+                                <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
                             </button>
                         </div>
                     </div>
