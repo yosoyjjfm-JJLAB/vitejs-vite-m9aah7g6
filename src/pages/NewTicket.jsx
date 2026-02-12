@@ -31,9 +31,11 @@ const NewTicket = () => {
                 }
             }
 
-            // 2. Crear el Ticket
+            // 2. Guardar el Ticket en Firestore
             const ticketData = {
                 ...data,
+                // Aseguramos que customerCompany vaya en el ticket también para facilitar búsquedas
+                customerCompany: data.customerCompany || '',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 status: 'Pendiente',
@@ -46,16 +48,14 @@ const NewTicket = () => {
                 ]
             };
 
-            console.log('Simulando guardado de Ticket:', ticketData);
+            const docRef = await addDoc(collection(db, "tickets"), ticketData);
+            console.log("Ticket escrito con ID: ", docRef.id);
 
-            setTimeout(() => {
-                alert('Ticket creado y cliente actualizado (Simulación).');
-                navigate('/');
-            }, 1000);
-
+            alert('Ticket registrado exitosamente.');
+            navigate('/'); // Redirigir al Dashboard
         } catch (err) {
             console.error("Error adding document: ", err);
-            setError('Hubo un error al guardar el registro. Revisa la consola.');
+            setError('Hubo un error al guardar el registro en Firebase. Revisa la consola.');
         } finally {
             setIsSubmitting(false);
         }

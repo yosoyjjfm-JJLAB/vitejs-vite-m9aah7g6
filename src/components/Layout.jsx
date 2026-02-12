@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Wrench, PlusCircle, LogOut, LayoutDashboard, FolderOpen } from 'lucide-react';
+import { Wrench, PlusCircle, LogOut, LayoutDashboard, FolderOpen, FileText } from 'lucide-react';
 
 const Layout = () => {
     const location = useLocation();
@@ -15,7 +15,7 @@ const Layout = () => {
             <aside className="w-full md:w-64 bg-slate-900 text-white flex-shrink-0">
                 <div className="p-6 border-b border-slate-800">
                     <div className="flex items-center gap-3">
-                        <Wrench className="w-8 h-8 text-blue-500" />
+                        <img src="/logo.png" alt="JJLAB Logo" className="w-12 h-12 object-contain" />
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">JJLAB Admin</h1>
                             <p className="text-xs text-slate-400">Tecnología Creativa</p>
@@ -29,9 +29,15 @@ const Layout = () => {
                         <span className="font-medium">Dashboard</span>
                     </Link>
 
+
                     <Link to="/nuevo" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/nuevo')}`}>
                         <PlusCircle size={20} />
                         <span className="font-medium">Nuevo Ingreso</span>
+                    </Link>
+
+                    <Link to="/cotizaciones/nueva" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/cotizaciones/nueva')}`}>
+                        <FileText size={20} />
+                        <span className="font-medium">Cotizar</span>
                     </Link>
 
                     <Link to="/archivos" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/archivos')}`}>
@@ -54,7 +60,9 @@ const Layout = () => {
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-semibold text-slate-800">
                             {location.pathname === '/' && 'Panel de Control'}
+
                             {location.pathname === '/nuevo' && 'Registrar Nuevo Equipo'}
+                            {location.pathname.includes('/cotizaciones') && 'Generador de Cotizaciones'}
                             {location.pathname === '/archivos' && 'Gestión de Archivos'}
                             {location.pathname.includes('/ticket/') && 'Detalle y Reparación'}
                         </h2>

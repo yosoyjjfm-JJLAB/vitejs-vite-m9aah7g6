@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building } from 'lucide-react';
 import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
 import { uploadPDF, uploadTicketPhoto } from '../services/storageService';
+import { estimateLifespan } from '../services/aiService';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const TicketDetail = () => {
     const { id } = useParams();
@@ -12,40 +15,69 @@ const TicketDetail = () => {
     const [loading, setLoading] = useState(true);
     const [emailStatus, setEmailStatus] = useState('idle');
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [estimating, setEstimating] = useState(false);
 
-    // Simular carga de datos
+    // Cargar datos reales de Firestore
     useEffect(() => {
-        setTimeout(() => {
-            setTicket({
-                id,
-                customerName: 'Juan Pérez',
-                customerCompany: 'Tech Solutions S.A.', // Dato simulado
-                customerEmail: 'juan@ejemplo.com',
-                customerPhone: '555-123-4567',
-                deviceType: 'Laptop',
-                deviceModel: 'Dell Inspiron 15',
-                deviceSerial: 'SN123456789',
-                problemDescription: 'No enciende, pantalla negra.',
-                diagnosis: 'Falla en chip de video confirmada y sulfatación en puerto de carga.',
-                solution: 'Reballing de GPU y limpieza química.',
-                status: 'Finalizado',
-                estimatedCost: '1,500',
-                photos: [] // Array inicial de fotos
-            });
-            setLoading(false);
-        }, 1000);
+        const fetchTicket = async () => {
+            try {
+                const docRef = doc(db, "tickets", id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setTicket({ id: docSnap.id, ...docSnap.data() });
+                } else {
+                    console.error("No such document!");
+                }
+            } catch (error) {
+                console.error("Error fetching ticket:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTicket();
     }, [id]);
+
+    const handleSaveChanges = async () => {
+        setSaving(true);
+        try {
+            const docRef = doc(db, "tickets", id);
+            // Actualizamos solo los campos editables
+            await updateDoc(docRef, {
+                customerCompany: ticket.customerCompany || '',
+                diagnosis: ticket.diagnosis || '',
+                solution: ticket.solution || '',
+                photos: ticket.photos || [],
+                status: ticket.status || 'Pendiente',
+                estimatedLife: ticket.estimatedLife || '',
+                serviceType: ticket.serviceType || 'Mantenimiento Correctivo',
+                ccEmails: ticket.ccEmails || ''
+            });
+            alert('Cambios guardados correctamente');
+        } catch (error) {
+            console.error("Error updating ticket:", error);
+            alert("Error al guardar cambios");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handleSendEmail = async () => {
         setEmailStatus('sending');
         try {
-            const fakeBlob = new Blob(['Fake PDF Content'], { type: 'application/pdf' });
-            const url = await uploadPDF(fakeBlob, id);
+            // Generar el BLOB real del PDF usando @react-pdf
+            const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
+
+            // Subir el PDF real a Firebase Storage
+            const url = await uploadPDF(blob, id);
+
             await sendTicketEmail(ticket, url);
             setEmailStatus('success');
             setTimeout(() => setEmailStatus('idle'), 3000);
         } catch (error) {
-            console.error(error);
+            console.error("Error al generar/enviar PDF:", error);
             setEmailStatus('error');
         }
     };
@@ -62,11 +94,18 @@ const TicketDetail = () => {
                 newPhotos.push(url);
             }
 
-            // Actualizar estado local (y en Firestore en una app real)
+            const updatedPhotos = [...(ticket.photos || []), ...newPhotos];
+
+            // Actualizar estado local
             setTicket(prev => ({
                 ...prev,
-                photos: [...(prev.photos || []), ...newPhotos]
+                photos: updatedPhotos
             }));
+
+            // Guardar automáticamente en Firestore al subir foto
+            const docRef = doc(db, "tickets", id);
+            await updateDoc(docRef, { photos: updatedPhotos });
+
         } catch (error) {
             console.error("Error upload:", error);
             alert("Error al subir imagen");
@@ -75,14 +114,54 @@ const TicketDetail = () => {
         }
     };
 
-    const removePhoto = (indexToRemove) => {
+    const handleEstimateLife = async () => {
+        if (!ticket.photos || ticket.photos.length === 0) {
+            alert("Sube al menos una foto para que la IA pueda analizar el equipo.");
+            return;
+        }
+
+        setEstimating(true);
+        try {
+            // Tomamos la primera foto para el análisis (por simplicidad)
+            // Nota: En un entorno real, tendríamos que pasar el File object o descargar la imagen.
+            // Como las fotos son URLs de Firebase, necesitamos obtener el Blob primero.
+            const response = await fetch(ticket.photos[0]);
+            const blob = await response.blob();
+            const file = new File([blob], "evidence.jpg", { type: blob.type });
+
+            const estimation = await estimateLifespan(file, `${ticket.deviceType} ${ticket.deviceModel}`, ticket.problemDescription);
+
+            setTicket(prev => ({
+                ...prev,
+                estimatedLife: estimation
+            }));
+        } catch (error) {
+            console.error("Error estimando vida útil:", error);
+            alert("No se pudo conectar con la IA. Verifica tu conexión o la API Key.");
+        } finally {
+            setEstimating(false);
+        }
+    };
+
+    const removePhoto = async (indexToRemove) => {
+        const updatedPhotos = ticket.photos.filter((_, index) => index !== indexToRemove);
+
         setTicket(prev => ({
             ...prev,
-            photos: prev.photos.filter((_, index) => index !== indexToRemove)
+            photos: updatedPhotos
         }));
+
+        // Actualizar en Firestore
+        try {
+            const docRef = doc(db, "tickets", id);
+            await updateDoc(docRef, { photos: updatedPhotos });
+        } catch (error) {
+            console.error("Error deleting photo ref:", error);
+        }
     };
 
     if (loading) return <div className="p-8 text-center text-slate-500">Cargando detalles del ticket...</div>;
+    if (!ticket) return <div className="p-8 text-center text-red-500">Ticket no encontrado.</div>;
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -110,10 +189,29 @@ const TicketDetail = () => {
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Detalles del Servicio</h2>
                                 <p className="text-sm text-slate-400">ID: {ticket.id}</p>
+                                {/* Selector Tipo de Servicio */}
+                                <select
+                                    className="mt-1 text-xs font-semibold bg-blue-50 text-blue-700 border-none rounded focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer p-1"
+                                    value={ticket.serviceType || 'Mantenimiento Correctivo'}
+                                    onChange={(e) => setTicket({ ...ticket, serviceType: e.target.value })}
+                                >
+                                    <option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option>
+                                    <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
+                                    <option value="Diagnóstico General">Diagnóstico General</option>
+                                </select>
                             </div>
-                            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                                {ticket.status}
-                            </span>
+                            <select
+                                className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800 border-none focus:ring-2 focus:ring-green-500 outline-none cursor-pointer"
+                                value={ticket.status}
+                                onChange={(e) => setTicket({ ...ticket, status: e.target.value })}
+                            >
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Diagnóstico">Diagnóstico</option>
+                                <option value="En Reparación">En Reparación</option>
+                                <option value="Listo">Listo</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Entregado">Entregado</option>
+                            </select>
                         </div>
 
                         <div className="space-y-4">
@@ -131,9 +229,18 @@ const TicketDetail = () => {
                                     />
                                 </div>
                                 <p className="text-sm text-slate-500 mt-1">{ticket.customerEmail} • {ticket.customerPhone}</p>
+                                {/* Campo CC Emails */}
+                                <div className="mt-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase">CC Correos (Separa con comas)</label>
+                                    <input
+                                        className="text-xs text-slate-600 border rounded p-1 w-full bg-slate-50"
+                                        placeholder="jefe@empresa.com, socio@empresa.com"
+                                        value={ticket.ccEmails || ''}
+                                        onChange={(e) => setTicket({ ...ticket, ccEmails: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
-                            {/* ... Resto de campos (equipo, falla) igual ... */}
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase">Datos del Equipo</label>
                                 <p className="text-slate-800">{ticket.deviceType} - {ticket.deviceModel}</p>
@@ -150,7 +257,8 @@ const TicketDetail = () => {
                                 <textarea
                                     className="w-full mt-1 p-2 border border-slate-300 rounded-md text-sm"
                                     rows="3"
-                                    defaultValue={ticket.diagnosis}
+                                    value={ticket.diagnosis || ''}
+                                    onChange={(e) => setTicket({ ...ticket, diagnosis: e.target.value })}
                                 ></textarea>
                             </div>
 
@@ -159,7 +267,29 @@ const TicketDetail = () => {
                                 <textarea
                                     className="w-full mt-1 p-2 border border-slate-300 rounded-md text-sm"
                                     rows="3"
-                                    defaultValue={ticket.solution}
+                                    value={ticket.solution || ''}
+                                    onChange={(e) => setTicket({ ...ticket, solution: e.target.value })}
+                                ></textarea>
+                            </div>
+
+                            {/* Nuevo Campo: Vida Útil Estimada */}
+                            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <label className="flex justify-between items-center text-xs font-bold text-indigo-800 uppercase">
+                                    <span>Tiempo de Vida Estimado (IA)</span>
+                                    <button
+                                        onClick={handleEstimateLife}
+                                        disabled={estimating}
+                                        className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded flex items-center gap-1 transition-colors"
+                                    >
+                                        {estimating ? 'Analizando...' : '✨ Calcular con IA'}
+                                    </button>
+                                </label>
+                                <textarea
+                                    className="w-full mt-2 p-2 border border-indigo-200 rounded-md text-sm text-slate-700 bg-white"
+                                    rows="1"
+                                    placeholder="Ej. 2 años si se mantiene el mantenimiento..."
+                                    value={ticket.estimatedLife || ''}
+                                    onChange={(e) => setTicket({ ...ticket, estimatedLife: e.target.value })}
                                 ></textarea>
                             </div>
 
@@ -196,8 +326,12 @@ const TicketDetail = () => {
                                 </div>
                             </div>
 
-                            <button className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg transition-colors mt-4">
-                                <Save size={18} /> Guardar Cambios
+                            <button
+                                onClick={handleSaveChanges}
+                                disabled={saving}
+                                className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg transition-colors mt-4"
+                            >
+                                <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
                             </button>
                         </div>
                     </div>
