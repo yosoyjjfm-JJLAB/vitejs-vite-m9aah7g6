@@ -145,6 +145,12 @@ const NewQuote = () => {
         }
     };
 
+
+    // Format Currency
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-20">
             <h1 className="text-3xl font-bold text-slate-800">Nueva Cotización</h1>
@@ -251,8 +257,8 @@ const NewQuote = () => {
                                         </div>
                                         <div className="col-span-4 md:col-span-3">
                                             <label className="text-xs font-semibold text-slate-500 uppercase">Total</label>
-                                            <div className="mt-1 p-2 bg-slate-200 rounded text-sm font-bold text-right">
-                                                ${item.total.toFixed(2)}
+                                            <div className="mt-1 p-2 bg-slate-200 rounded text-sm font-bold text-right text-slate-700">
+                                                {formatCurrency(item.total)}
                                             </div>
                                         </div>
                                     </div>
@@ -331,15 +337,15 @@ const NewQuote = () => {
                         <div className="space-y-3 mb-6">
                             <div className="flex justify-between text-slate-600">
                                 <span>Subtotal</span>
-                                <span>${subtotal.toFixed(2)}</span>
+                                <span>{formatCurrency(subtotal)}</span>
                             </div>
                             <div className="flex justify-between text-slate-600">
                                 <span>IVA ({settings.taxRate}%)</span>
-                                <span>${taxAmount.toFixed(2)}</span>
+                                <span>{formatCurrency(taxAmount)}</span>
                             </div>
                             <div className="flex justify-between text-slate-900 font-bold text-lg pt-4 border-t">
                                 <span>Total</span>
-                                <span>${total.toFixed(2)}</span>
+                                <span>{formatCurrency(total)}</span>
                             </div>
                         </div>
 
