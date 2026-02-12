@@ -35,9 +35,10 @@ const Layout = () => {
                         <span className="font-medium">Nuevo Ingreso</span>
                     </Link>
 
-                    <Link to="/cotizaciones/nueva" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/cotizaciones/nueva')}`}>
+
+                    <Link to="/cotizaciones" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/cotizaciones')}`}>
                         <FileText size={20} />
-                        <span className="font-medium">Cotizar</span>
+                        <span className="font-medium">Cotizaciones</span>
                     </Link>
 
                     <Link to="/archivos" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive('/archivos')}`}>
@@ -62,7 +63,9 @@ const Layout = () => {
                             {location.pathname === '/' && 'Panel de Control'}
 
                             {location.pathname === '/nuevo' && 'Registrar Nuevo Equipo'}
-                            {location.pathname.includes('/cotizaciones') && 'Generador de Cotizaciones'}
+                            {location.pathname === '/cotizaciones' && 'Historial de Cotizaciones'}
+                            {location.pathname === '/cotizaciones/nueva' && 'Nueva Cotización'}
+                            {location.pathname.includes('/cotizaciones/') && location.pathname !== '/cotizaciones/nueva' && 'Editar Cotización'}
                             {location.pathname === '/archivos' && 'Gestión de Archivos'}
                             {location.pathname.includes('/ticket/') && 'Detalle y Reparación'}
                         </h2>

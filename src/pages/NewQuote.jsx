@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import QuotePDF from '../components/QuotePDF';
-import { sendQuoteEmail } from '../services/emailService'; // We will create this next
+import { sendQuoteEmail } from '../services/emailService';
 import { suggestItemDetails } from '../services/aiService';
 import { uploadPDF } from '../services/storageService';
-import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator } from 'lucide-react';
+import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator, ArrowLeft } from 'lucide-react';
 
 const NewQuote = () => {
+    const { id } = useParams(); // Get ID from URL if editing
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [generatingAI, setGeneratingAI] = useState(null); // Index of item being processed
+    const [generatingAI, setGeneratingAI] = useState(null);
 
     // Customer Data
     const [customer, setCustomer] = useState({
@@ -24,8 +25,8 @@ const NewQuote = () => {
 
     // Quote Settings
     const [settings, setSettings] = useState({
-        taxRate: 16, // Percentage
-        validUntil: '', // Date string
+        taxRate: 16,
+        validUntil: '',
         notes: ''
     });
 
@@ -38,6 +39,44 @@ const NewQuote = () => {
     const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
     const taxAmount = subtotal * (settings.taxRate / 100);
     const total = subtotal + taxAmount;
+
+    // Load Data if ID exists
+    useEffect(() => {
+        if (id) {
+            const fetchQuote = async () => {
+                setLoading(true);
+                try {
+                    const docRef = doc(db, "quotes", id);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setCustomer({
+                            name: data.customerName || '',
+                            company: data.customerCompany || '',
+                            email: data.customerEmail || '',
+                            phone: data.customerPhone || ''
+                        });
+                        setItems(data.items || []);
+                        setSettings({
+                            taxRate: (data.taxRate || 0.16) * 100,
+                            validUntil: data.validUntil || '',
+                            notes: data.notes || ''
+                        });
+                    } else {
+                        alert("No se encontró la cotización");
+                        navigate('/cotizaciones');
+                    }
+                } catch (error) {
+                    console.error("Error loading quote:", error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchQuote();
+        }
+    }, [id, navigate]);
+
 
     // Handlers
     const handleCustomerChange = (e) => {
@@ -52,7 +91,6 @@ const NewQuote = () => {
         const newItems = [...items];
         newItems[index][field] = value;
 
-        // Auto-calc total if qty or price changes
         if (field === 'quantity' || field === 'unitPrice') {
             const qty = parseFloat(field === 'quantity' ? value : newItems[index].quantity) || 0;
             const price = parseFloat(field === 'unitPrice' ? value : newItems[index].unitPrice) || 0;
@@ -71,7 +109,6 @@ const NewQuote = () => {
         setItems(newItems);
     };
 
-    // AI Assist
     const handleAIAssist = async (index) => {
         const itemName = items[index].name;
         if (!itemName) return alert("Escribe el nombre del producto primero.");
@@ -79,7 +116,6 @@ const NewQuote = () => {
         setGeneratingAI(index);
         try {
             const { description, searchUrl } = await suggestItemDetails(itemName);
-
             const newItems = [...items];
             newItems[index].description = description;
             newItems[index].searchUrl = searchUrl;
@@ -98,7 +134,6 @@ const NewQuote = () => {
 
         setLoading(true);
         try {
-            // 1. Prepare Data
             const quoteData = {
                 customerName: customer.name,
                 customerCompany: customer.company,
@@ -106,54 +141,73 @@ const NewQuote = () => {
                 customerPhone: customer.phone,
                 items: items,
                 subtotal: subtotal,
-                taxRate: settings.taxRate / 100, // Store as decimal
+                taxRate: settings.taxRate / 100,
                 taxAmount: taxAmount,
                 total: total,
                 notes: settings.notes,
                 validUntil: settings.validUntil,
-                createdAt: serverTimestamp(),
-                status: 'Borrador'
+                status: sendEmail ? 'Enviada' : 'Borrador',
+                updatedAt: serverTimestamp()
             };
 
-            // 2. Save to Firestore
-            const docRef = await addDoc(collection(db, "quotes"), quoteData);
-            const quoteId = docRef.id;
+            if (!id) {
+                quoteData.createdAt = serverTimestamp();
+            }
+
+            let quoteId = id;
+
+            if (id) {
+                // Update existing
+                const docRef = doc(db, "quotes", id);
+                await updateDoc(docRef, quoteData);
+            } else {
+                // Create new
+                const docRef = await addDoc(collection(db, "quotes"), quoteData);
+                quoteId = docRef.id;
+            }
+
             console.log("Cotización guardada ID:", quoteId);
 
-            // 3. Generate PDF Blob
-            // We pass the quoteId to the PDF component so it shows up in the document
+            // Generate & Upload PDF (Always update PDF on save)
             const pdfBlob = await pdf(<QuotePDF data={{ ...quoteData, quoteNumber: quoteId.slice(-6).toUpperCase() }} />).toBlob();
-
-            // 4. Upload PDF
             const pdfUrl = await uploadPDF(pdfBlob, `Q-${quoteId}`);
 
-            // 5. Send Email (Optional)
             if (sendEmail) {
                 if (!customer.email) throw new Error("El cliente no tiene email.");
                 await sendQuoteEmail({ ...quoteData, id: quoteId, pdfUrl }, pdfUrl);
-                alert("Cotización guardada y enviada por correo.");
+                alert("Cotización actualizada y enviada.");
             } else {
                 alert("Cotización guardada exitosamente.");
             }
 
-            navigate('/'); // Go back or to list
+            navigate('/cotizaciones');
         } catch (error) {
             console.error("Error:", error);
-            alert("Hubo un error al procesar la cotización: " + error.message);
+            alert("Hubo un error: " + error.message);
         } finally {
             setLoading(false);
         }
     };
-
 
     // Format Currency
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
     };
 
+    if (loading && id && !customer.name) {
+        return <div className="p-8 text-center text-slate-500">Cargando datos de la cotización...</div>;
+    }
+
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-20">
-            <h1 className="text-3xl font-bold text-slate-800">Nueva Cotización</h1>
+            <div className="flex items-center gap-4 mb-4">
+                <button onClick={() => navigate('/cotizaciones')} className="text-slate-500 hover:text-slate-700">
+                    <ArrowLeft size={24} />
+                </button>
+                <h1 className="text-3xl font-bold text-slate-800">
+                    {id ? 'Editar Cotización' : 'Nueva Cotización'}
+                </h1>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -371,7 +425,7 @@ const NewQuote = () => {
                                 <div className="h-64 bg-slate-100 rounded border overflow-hidden">
                                     <PDFViewer width="100%" height="100%" showToolbar={false} className="border-none">
                                         <QuotePDF data={{
-                                            quoteNumber: 'BORRADOR',
+                                            quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
                                             createdAt: new Date(),
                                             customerName: customer.name || 'Cliente',
                                             customerCompany: customer.company,
@@ -390,7 +444,7 @@ const NewQuote = () => {
                                 <div className="text-center mt-2">
                                     <PDFDownloadLink
                                         document={<QuotePDF data={{
-                                            quoteNumber: 'BORRADOR',
+                                            quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
                                             createdAt: new Date(),
                                             customerName: customer.name || 'Cliente',
                                             customerCompany: customer.company,
@@ -404,7 +458,7 @@ const NewQuote = () => {
                                             notes: settings.notes,
                                             validUntil: settings.validUntil
                                         }} />}
-                                        fileName="cotizacion_borrador.pdf"
+                                        fileName="cotizacion.pdf"
                                         className="text-xs text-blue-500 hover:text-blue-700 underline flex items-center justify-center gap-1"
                                     >
                                         {({ blob, url, loading, error }) =>

@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import NewTicket from './pages/NewTicket';
 import NewQuote from './pages/NewQuote';
+import QuotesList from './pages/QuotesList';
 import TicketDetail from './pages/TicketDetail';
 import Login from './pages/Login';
 import StorageGallery from './pages/StorageGallery';
@@ -25,9 +26,12 @@ function App() {
                     </ProtectedRoute>
                 }>
 
+
                     <Route index element={<Dashboard />} />
                     <Route path="nuevo" element={<NewTicket />} />
+                    <Route path="cotizaciones" element={<QuotesList />} />
                     <Route path="cotizaciones/nueva" element={<NewQuote />} />
+                    <Route path="cotizaciones/:id" element={<NewQuote />} />
                     <Route path="archivos" element={<StorageGallery />} />
                     <Route path="ticket/:id" element={<TicketDetail />} />
                 </Route>
