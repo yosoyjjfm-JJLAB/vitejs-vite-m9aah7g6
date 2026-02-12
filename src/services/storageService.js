@@ -21,3 +21,8 @@ export const uploadTicketPhoto = async (file, ticketId) => {
     const timestamp = Date.now();
     return uploadFile(file, `evidence/${ticketId}/${timestamp}_${file.name}`);
 };
+
+export const uploadQuoteImage = async (file) => {
+    const timestamp = Date.now();
+    return uploadFile(file, `quotes/images/${timestamp}_${file.name}`);
+};

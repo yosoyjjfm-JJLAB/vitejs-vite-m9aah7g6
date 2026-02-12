@@ -6,14 +6,16 @@ import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import QuotePDF from '../components/QuotePDF';
 import { sendQuoteEmail } from '../services/emailService';
 import { suggestItemDetails } from '../services/aiService';
-import { uploadPDF } from '../services/storageService';
-import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator, ArrowLeft } from 'lucide-react';
+import { uploadPDF, uploadQuoteImage } from '../services/storageService';
+import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator, ArrowLeft, Upload, Loader2 } from 'lucide-react';
 
 const NewQuote = () => {
     const { id } = useParams(); // Get ID from URL if editing
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+
     const [generatingAI, setGeneratingAI] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(null);
 
     // Customer Data
     const [customer, setCustomer] = useState({
@@ -125,6 +127,34 @@ const NewQuote = () => {
             alert("Error al generar descripción con IA.");
         } finally {
             setGeneratingAI(null);
+        }
+    };
+
+    const handleImageUpload = async (index, file) => {
+        if (!file) return;
+
+        setUploadingImage(index);
+        try {
+            const imageUrl = await uploadQuoteImage(file);
+            const newItems = [...items];
+            newItems[index].image = imageUrl;
+            setItems(newItems);
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            alert("Error al subir la imagen.");
+        } finally {
+            setUploadingImage(null);
+        }
+    };
+
+    const handlePaste = async (index, e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const file = items[i].getAsFile();
+                await handleImageUpload(index, file);
+                break;
+            }
         }
     };
 
@@ -333,12 +363,34 @@ const NewQuote = () => {
                                             )}
                                         </div>
                                         <div className="col-span-12 md:col-span-4">
-                                            <input
-                                                placeholder="URL de Imagen (Miniatura)"
-                                                className="w-full p-2 border rounded text-xs text-slate-500"
-                                                value={item.image}
-                                                onChange={(e) => handleItemChange(index, 'image', e.target.value)}
-                                            />
+                                            <div className="flex gap-2">
+                                                <input
+                                                    placeholder="URL de Imagen (Miniatura)"
+                                                    className="w-full p-2 border rounded text-xs text-slate-500"
+                                                    value={item.image}
+                                                    onChange={(e) => handleItemChange(index, 'image', e.target.value)}
+                                                    onPaste={(e) => handlePaste(index, e)}
+                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        id={`file-upload-${index}`}
+                                                        onChange={(e) => handleImageUpload(index, e.target.files[0])}
+                                                    />
+                                                    <label
+                                                        htmlFor={`file-upload-${index}`}
+                                                        className={`flex items-center justify-center p-2 rounded cursor-pointer transition-colors ${uploadingImage === index ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                    >
+                                                        {uploadingImage === index ? (
+                                                            <Loader2 size={16} className="animate-spin" />
+                                                        ) : (
+                                                            <Upload size={16} />
+                                                        )}
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
