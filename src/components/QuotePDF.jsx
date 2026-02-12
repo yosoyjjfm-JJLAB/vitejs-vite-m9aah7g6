@@ -318,7 +318,7 @@ const QuotePDF = ({ data }) => {
                 {/* Footer */}
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        JJLAB Tecnología Creativa • www.jjlab.mx
+                        JJLAB Tecnología Creativa
                     </Text>
                 </View>
 
