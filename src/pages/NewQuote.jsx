@@ -16,6 +16,7 @@ const NewQuote = () => {
 
     const [generatingAI, setGeneratingAI] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(null);
+    const [debouncedData, setDebouncedData] = useState(null);
 
     // Customer Data
     const [customer, setCustomer] = useState({
@@ -90,6 +91,35 @@ const NewQuote = () => {
             fetchQuote();
         }
     }, [id, navigate]);
+    
+    // Debounce PDF Data for "Live" preview
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedData({
+                quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
+                createdAt: new Date(),
+                customerName: customer.name || 'Cliente',
+                customerCompany: customer.company,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                items: items,
+                subtotal: subtotal,
+                taxRate: settings.taxRate / 100,
+                taxAmount: taxAmount,
+                total: total,
+                notes: settings.notes,
+                validUntil: settings.validUntil,
+                attentionTo: customer.attentionTo,
+                from: customer.from,
+                workName: customer.workName,
+                location: customer.location,
+                place: customer.place,
+                referenceNumber: settings.referenceNumber
+            });
+        }, 800); // 800ms debounce for smoother UI
+
+        return () => clearTimeout(timer);
+    }, [customer, items, settings, id, subtotal, taxAmount, total]);
 
 
     // Handlers
@@ -537,50 +567,31 @@ const NewQuote = () => {
 
                             <div className="pt-4 border-t border-slate-100">
                                 <h3 className="text-sm font-bold text-slate-700 mb-2">Vista Previa</h3>
-                                <div className="h-64 bg-slate-100 rounded border overflow-hidden">
-                                    <PDFViewer width="100%" height="100%" showToolbar={false} className="border-none">
-                                        <QuotePDF data={{
-                                            quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
-                                            createdAt: new Date(),
-                                            customerName: customer.name || 'Cliente',
-                                            customerCompany: customer.company,
-                                            customerEmail: customer.email,
-                                            customerPhone: customer.phone,
-                                            items: items,
-                                            subtotal: subtotal,
-                                            taxRate: settings.taxRate / 100,
-                                            taxAmount: taxAmount,
-                                            total: total,
-                                            notes: settings.notes,
-                                            validUntil: settings.validUntil
-                                        }} />
-                                    </PDFViewer>
-                                </div>
-                                <div className="text-center mt-2">
-                                    <PDFDownloadLink
-                                        document={<QuotePDF data={{
-                                            quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
-                                            createdAt: new Date(),
-                                            customerName: customer.name || 'Cliente',
-                                            customerCompany: customer.company,
-                                            customerEmail: customer.email,
-                                            customerPhone: customer.phone,
-                                            items: items,
-                                            subtotal: subtotal,
-                                            taxRate: settings.taxRate / 100,
-                                            taxAmount: taxAmount,
-                                            total: total,
-                                            notes: settings.notes,
-                                            validUntil: settings.validUntil
-                                        }} />}
-                                        fileName="cotizacion.pdf"
-                                        className="text-xs text-blue-500 hover:text-blue-700 underline flex items-center justify-center gap-1"
-                                    >
-                                        {({ blob, url, loading, error }) =>
-                                            loading ? 'Generando...' : 'Descargar PDF'
-                                        }
-                                    </PDFDownloadLink>
-                                </div>
+                                {debouncedData && (
+                                    <>
+                                        <div className="h-64 bg-slate-100 rounded border overflow-hidden">
+                                            <PDFViewer width="100%" height="100%" showToolbar={false} className="border-none">
+                                                <QuotePDF data={debouncedData} />
+                                            </PDFViewer>
+                                        </div>
+                                        <div className="text-center mt-2">
+                                            <PDFDownloadLink
+                                                document={<QuotePDF data={debouncedData} />}
+                                                fileName="cotizacion.pdf"
+                                                className="text-xs text-blue-500 hover:text-blue-700 underline flex items-center justify-center gap-1"
+                                            >
+                                                {({ blob, url, loading, error }) =>
+                                                    loading ? 'Generando...' : 'Descargar PDF'
+                                                }
+                                            </PDFDownloadLink>
+                                        </div>
+                                    </>
+                                )}
+                                {!debouncedData && (
+                                    <div className="h-64 bg-slate-50 flex items-center justify-center text-slate-400 text-xs">
+                                        Preparando vista previa...
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
