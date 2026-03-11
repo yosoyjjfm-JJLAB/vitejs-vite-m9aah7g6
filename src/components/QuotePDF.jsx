@@ -257,7 +257,7 @@ const QuotePDF = ({ data }) => {
                             <Text>Servicios de Electrónica y Tecnología</Text>
                             <Text>Tel: +52 984 131 8433</Text>
                             <Text>Email: jjlab2020@gmail.com</Text>
-                            <Text>RFC: FOMJ8708066X8</Text>
+                            <Text>RFC: FOMJ8708066X8</Text><Text>JOSE JUAN FLORES MARTINEZ</Text>
                         </View>
                     </View>
                     <View style={styles.invoiceInfo}>
