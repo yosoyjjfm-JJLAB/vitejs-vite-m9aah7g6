@@ -257,6 +257,7 @@ const QuotePDF = ({ data }) => {
                             <Text>Servicios de Electrónica y Tecnología</Text>
                             <Text>Tel: +52 984 131 8433</Text>
                             <Text>Email: jjlab2020@gmail.com</Text>
+                            <Text>RFC: FOMJ8708066X8</Text>
                         </View>
                     </View>
                     <View style={styles.invoiceInfo}>
@@ -396,7 +397,7 @@ const QuotePDF = ({ data }) => {
                 <View style={styles.terms}>
                     <Text style={styles.sectionTitle}>Términos y Condiciones</Text>
                     <Text style={{ fontSize: 9, color: '#64748b', lineHeight: 1.4 }}>
-                        {data.notes || 'Esta cotización tiene una validez de 15 días. Tiempos de entrega sujetos a disponibilidad de piezas.'}
+                        {data.notes || 'Esta cotización tiene una validez de 30 días. Tiempos de entrega sujetos a disponibilidad de piezas.'}
                     </Text>
                     {/* Link de búsqueda (Idea del usuario) - Si es útil imprimirlo */}
                     {/* <Text style={{ marginTop: 10, fontSize: 8, color: '#94a3b8' }}>Generado digitalmente por JJLAB Admin.</Text> */}
