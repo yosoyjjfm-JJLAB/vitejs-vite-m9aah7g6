@@ -22,14 +22,20 @@ const NewQuote = () => {
         name: '',
         company: '',
         email: '',
-        phone: ''
+        phone: '',
+        attentionTo: '',
+        from: '',
+        workName: '',
+        location: '',
+        place: ''
     });
 
     // Quote Settings
     const [settings, setSettings] = useState({
         taxRate: 16,
         validUntil: '',
-        notes: ''
+        notes: '',
+        referenceNumber: ''
     });
 
     // Items
@@ -57,13 +63,19 @@ const NewQuote = () => {
                             name: data.customerName || '',
                             company: data.customerCompany || '',
                             email: data.customerEmail || '',
-                            phone: data.customerPhone || ''
+                            phone: data.customerPhone || '',
+                            attentionTo: data.attentionTo || '',
+                            from: data.from || '',
+                            workName: data.workName || '',
+                            location: data.location || '',
+                            place: data.place || ''
                         });
                         setItems(data.items || []);
                         setSettings({
                             taxRate: (data.taxRate || 0.16) * 100,
                             validUntil: data.validUntil || '',
-                            notes: data.notes || ''
+                            notes: data.notes || '',
+                            referenceNumber: data.referenceNumber || ''
                         });
                     } else {
                         alert("No se encontró la cotización");
@@ -176,6 +188,12 @@ const NewQuote = () => {
                 total: total,
                 notes: settings.notes,
                 validUntil: settings.validUntil,
+                referenceNumber: settings.referenceNumber,
+                attentionTo: customer.attentionTo,
+                from: customer.from,
+                workName: customer.workName,
+                location: customer.location,
+                place: customer.place,
                 status: sendEmail ? 'Enviada' : 'Borrador',
                 updatedAt: serverTimestamp()
             };
@@ -276,6 +294,41 @@ const NewQuote = () => {
                                 placeholder="Teléfono"
                                 className="p-2 border rounded-md"
                                 value={customer.phone}
+                                onChange={handleCustomerChange}
+                            />
+                            <input
+                                name="attentionTo"
+                                placeholder="A la atención de (ATN)"
+                                className="p-2 border rounded-md"
+                                value={customer.attentionTo}
+                                onChange={handleCustomerChange}
+                            />
+                            <input
+                                name="from"
+                                placeholder="De parte de (DE)"
+                                className="p-2 border rounded-md"
+                                value={customer.from}
+                                onChange={handleCustomerChange}
+                            />
+                            <input
+                                name="place"
+                                placeholder="Lugar (Eje. Playa del Carmen)"
+                                className="p-2 border rounded-md"
+                                value={customer.place}
+                                onChange={handleCustomerChange}
+                            />
+                            <input
+                                name="workName"
+                                placeholder="Nombre de la Obra"
+                                className="p-2 border rounded-md col-span-2"
+                                value={customer.workName}
+                                onChange={handleCustomerChange}
+                            />
+                            <input
+                                name="location"
+                                placeholder="Ubicación Detallada"
+                                className="p-2 border rounded-md col-span-2"
+                                value={customer.location}
                                 onChange={handleCustomerChange}
                             />
                         </div>
@@ -425,12 +478,22 @@ const NewQuote = () => {
                             </div>
                         </div>
                         <textarea
-                            className="w-full p-2 border rounded h-24 text-sm"
+                            className="w-full p-2 border rounded h-24 text-sm mb-4"
                             placeholder="Términos, condiciones y notas adicionales..."
                             value={settings.notes}
                             onChange={handleSettingsChange}
                             name="notes"
                         ></textarea>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-slate-500 uppercase">Referencia de Cotización (N.REF)</label>
+                            <input
+                                name="referenceNumber"
+                                placeholder="Ej. N.REF.T-25-068"
+                                className="p-2 border rounded-md"
+                                value={settings.referenceNumber}
+                                onChange={handleSettingsChange}
+                            />
+                        </div>
                     </div>
 
                 </div>

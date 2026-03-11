@@ -1,5 +1,5 @@
-import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { numberToLetters } from '../services/formatService';
 
 const styles = StyleSheet.create({
     page: {
@@ -46,6 +46,20 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         textTransform: 'uppercase',
     },
+    refBox: {
+        backgroundColor: '#f1f5f9',
+        padding: '2 8',
+        borderRadius: 2,
+        borderWidth: 1,
+        borderColor: '#cbd5e1',
+        alignSelf: 'flex-end',
+        marginTop: 5,
+    },
+    refText: {
+        color: '#334155',
+        fontSize: 9,
+        fontWeight: 'bold',
+    },
     label: {
         fontSize: 8,
         color: '#64748b',
@@ -65,6 +79,21 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         borderLeftWidth: 4,
         borderLeftColor: '#3b82f6', // Blue 500
+    },
+    clientRow: {
+        flexDirection: 'row',
+        marginBottom: 2,
+    },
+    clientLabel: {
+        width: 80,
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: '#1e293b',
+    },
+    clientValue: {
+        flex: 1,
+        fontSize: 9,
+        color: '#334155',
     },
     sectionTitle: {
         fontSize: 12,
@@ -86,11 +115,11 @@ const styles = StyleSheet.create({
     tableRow: {
         margin: "auto",
         flexDirection: "row",
-        minHeight: 30, // Altura mínima para filas
-        alignItems: 'center', // Centrar verticalmente
+        minHeight: 30,
+        alignItems: 'center',
     },
     tableHeader: {
-        backgroundColor: '#f1f5f9', // Slate 100
+        backgroundColor: '#f1f5f9',
     },
     tableCol: {
         width: "15%",
@@ -158,11 +187,21 @@ const styles = StyleSheet.create({
     },
     finalTotal: {
         fontSize: 12,
-        color: '#0f172a', // Blue 700
+        color: '#0f172a',
         borderTopWidth: 1,
         borderTopColor: '#cbd5e1',
         paddingTop: 5,
         marginTop: 5,
+    },
+    amountInLetters: {
+        marginTop: 10,
+        padding: 10,
+        backgroundColor: '#f8fafc',
+        borderRadius: 4,
+        fontSize: 9,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: '#475569',
     },
     terms: {
         marginTop: 40,
@@ -194,7 +233,7 @@ const styles = StyleSheet.create({
 const QuotePDF = ({ data }) => {
     // Calculos
     const subtotal = data.items.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0);
-    const taxRate = data.taxRate || 0.16; // 16% por defecto si no viene
+    const taxRate = data.taxRate || 0.16;
     const tax = subtotal * taxRate;
     const total = subtotal + tax;
 
@@ -206,37 +245,80 @@ const QuotePDF = ({ data }) => {
         <Document>
             <Page size="A4" style={styles.page}>
 
-                {/* Header con Logo */}
+                {/* Header Original JJLAB */}
                 <View style={styles.header}>
                     <View style={styles.logoSection}>
-                        {/* IMAGEN DEL LOGO - CONFIRMADO */}
                         <Image
                             src={window.location.origin + '/logo.png'}
                             style={{ width: 100, height: 50, objectFit: 'contain', marginBottom: 5 }}
                         />
                         <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                         <View style={styles.companyInfo}>
-                            <Text>Servicios de Electrónica y automatización</Text>
-                            <Text>Tel: 984 131 8433</Text>
+                            <Text>Servicios de Electrónica y Tecnología</Text>
+                            <Text>Tel: +52 984 131 8433</Text>
                             <Text>Email: jjlab2020@gmail.com</Text>
                         </View>
                     </View>
                     <View style={styles.invoiceInfo}>
                         <Text style={styles.title}>COTIZACIÓN</Text>
+                        {data.referenceNumber && (
+                            <View style={styles.refBox}>
+                                <Text style={styles.refText}>{data.referenceNumber}</Text>
+                            </View>
+                        )}
                         <Text style={styles.label}>NÚMERO</Text>
                         <Text style={styles.value}>#{data.quoteNumber || 'BORRADOR'}</Text>
                         <Text style={styles.label}>FECHA</Text>
                         <Text style={styles.value}>{new Date().toLocaleDateString('es-MX')}</Text>
-                        <Text style={styles.label}>VÁLIDO HASTA</Text>
-                        <Text style={styles.value}>{data.validUntil || '30 días segun fecha'}</Text>
                     </View>
                 </View>
 
-                {/* Datos del Cliente */}
+                {/* Datos del Cliente y Campos Nuevos */}
                 <View style={styles.clientSection}>
                     <Text style={styles.sectionTitle}>Preparado para:</Text>
-                    <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{data.customerName}</Text>
-                    {data.customerCompany && <Text style={{ fontSize: 10, color: '#475569' }}>{data.customerCompany}</Text>}
+                    
+                    {/* Campos condicionales inyectados en el estilo original */}
+                    {data.customerCompany && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>PARA:</Text>
+                            <Text style={[styles.clientValue, { fontWeight: 'bold' }]}>{data.customerCompany}</Text>
+                        </View>
+                    )}
+                    {data.place && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>LUGAR:</Text>
+                            <Text style={styles.clientValue}>{data.place}</Text>
+                        </View>
+                    )}
+                    {data.attentionTo && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>ATN:</Text>
+                            <Text style={styles.clientValue}>{data.attentionTo}</Text>
+                        </View>
+                    )}
+                    {data.from && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>DE:</Text>
+                            <Text style={styles.clientValue}>{data.from}</Text>
+                        </View>
+                    )}
+                    {data.workName && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>OBRA:</Text>
+                            <Text style={styles.clientValue}>{data.workName}</Text>
+                        </View>
+                    )}
+                    {data.location && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>UBICACIÓN:</Text>
+                            <Text style={styles.clientValue}>{data.location}</Text>
+                        </View>
+                    )}
+
+                    {/* Datos básicos si no se usan los campos arriba */}
+                    {!data.customerCompany && (
+                        <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{data.customerName}</Text>
+                    )}
                     <Text style={{ fontSize: 10, marginTop: 4 }}>{data.customerEmail}</Text>
                     <Text style={{ fontSize: 10 }}>{data.customerPhone}</Text>
                 </View>
@@ -287,7 +369,7 @@ const QuotePDF = ({ data }) => {
                     ))}
                 </View>
 
-                {/* Totales */}
+                {/* Totales Original JJLAB */}
                 <View style={styles.totalsSection}>
                     <View>
                         <View style={styles.totalRow}>
@@ -305,11 +387,16 @@ const QuotePDF = ({ data }) => {
                     </View>
                 </View>
 
+                {/* Importe con Letra */}
+                <View style={styles.amountInLetters}>
+                    <Text>( * {numberToLetters(total)} * )</Text>
+                </View>
+
                 {/* Términos y Condiciones */}
                 <View style={styles.terms}>
                     <Text style={styles.sectionTitle}>Términos y Condiciones</Text>
                     <Text style={{ fontSize: 9, color: '#64748b', lineHeight: 1.4 }}>
-                        {data.notes || 'Esta cotización tiene una validez de 30 días. Los precios están sujetos a cambios sin previo aviso. Para confirmar el trabajo se requiere el 50% de anticipo. Tiempos de entrega sujetos a disponibilidad de piezas.'}
+                        {data.notes || 'Esta cotización tiene una validez de 15 días. Tiempos de entrega sujetos a disponibilidad de piezas.'}
                     </Text>
                     {/* Link de búsqueda (Idea del usuario) - Si es útil imprimirlo */}
                     {/* <Text style={{ marginTop: 10, fontSize: 8, color: '#94a3b8' }}>Generado digitalmente por JJLAB Admin.</Text> */}
