@@ -198,6 +198,7 @@ const TicketDetail = () => {
                                     <option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option>
                                     <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
                                     <option value="Diagnóstico General">Diagnóstico General</option>
+                                    <option value="Dictamen">Dictamen</option>
                                 </select>
                             </div>
                             <select
@@ -211,6 +212,7 @@ const TicketDetail = () => {
                                 <option value="Listo">Listo</option>
                                 <option value="Finalizado">Finalizado</option>
                                 <option value="Entregado">Entregado</option>
+                                <option value="Baja">Baja</option>
                             </select>
                         </div>
 
