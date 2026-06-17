@@ -188,3 +188,87 @@ export const suggestItemDetails = async (itemName) => {
         };
     }
 };
+
+/**
+ * Analiza la foto de un equipo para identificar tipo, modelo y extraer número de serie (OCR)
+ */
+export const analyzeDevicePhoto = async (imageFile) => {
+    try {
+        // 1. Redimensionar y comprimir la imagen
+        const compressedFile = await resizeImage(imageFile, 600, 600);
+        
+        // 2. Convertir a Base64 Data URI
+        const imageDataUri = await fileToDataUri(compressedFile);
+
+        // 3. Prompt estructurado para extraer JSON
+        const prompt = `
+            Actúa como un asistente técnico experto y un extractor de texto OCR de alta precisión.
+            Analiza esta imagen de un dispositivo electrónico (especialmente cualquier etiqueta con especificaciones, marca, modelo o códigos de barra visibles).
+            
+            Identifica y extrae los datos requeridos. Responde ÚNICAMENTE en formato JSON válido como este ejemplo (sin formato markdown de código de bloque, sin prefijos ni sufijos):
+            {
+              "deviceType": "Laptop",
+              "deviceModel": "Modelo detallado (ej. Lenovo ThinkPad L14 Gen 2)",
+              "deviceSerial": "Número de serie o S/N (sin espacios ni guiones innecesarios, ej. NXH21AL001)",
+              "problemDescription": "Daño o falla evidente a nivel físico visible en la imagen (o cadena vacía si no hay nada obvio)"
+            }
+            
+            El campo "deviceType" debe ser estrictamente uno de los siguientes valores: "Laptop", "Smartphone", "Cámara", "SmartTV", "Consola", "Otro".
+            
+            No incluyas explicaciones adicionales, devuelvo solo el texto JSON puro.
+        `;
+
+        const response = await fetch(ZEN_API_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${OPENCODE_ZEN_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: prompt
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: imageDataUri
+                                }
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Error HTTP ${response.status}: ${errText.substring(0, 100)}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("La respuesta de la API no es JSON.");
+        }
+
+        const data = await response.json();
+        if (data.choices && data.choices.length > 0) {
+            const content = data.choices[0].message.content.trim();
+            // Eliminar bloques de código markdown si el modelo los devuelve
+            const cleanJson = content.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+            
+            console.log("[AI Service] JSON limpio recibido:", cleanJson);
+            return JSON.parse(cleanJson);
+        } else {
+            throw new Error("La API devolvió un resultado vacío.");
+        }
+    } catch (error) {
+        console.error("Error en analyzeDevicePhoto mediante OpenCode Zen:", error);
+        throw error;
+    }
+};

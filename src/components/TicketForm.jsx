@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Save, User, Smartphone, AlertTriangle, Search, Building } from 'lucide-react';
+import { Save, User, Smartphone, AlertTriangle, Search, Building, Camera } from 'lucide-react';
 import { searchCustomers } from '../services/customerService';
+import { analyzeDevicePhoto } from '../services/aiService';
 
 const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
     const [formData, setFormData] = useState({
@@ -53,6 +54,39 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
         }));
         setSearchResults([]);
         setSearchTerm('');
+    };
+
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const handleAiScan = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsAnalyzing(true);
+        try {
+            console.log("[AI Scan] Iniciando análisis de foto del equipo...");
+            const result = await analyzeDevicePhoto(file);
+            console.log("[AI Scan] Resultado obtenido:", result);
+
+            // Auto-rellenar campos obtenidos
+            setFormData(prev => ({
+                ...prev,
+                deviceType: result.deviceType || prev.deviceType,
+                deviceModel: result.deviceModel || prev.deviceModel,
+                deviceSerial: result.deviceSerial || prev.deviceSerial,
+                problemDescription: result.problemDescription 
+                    ? (prev.problemDescription ? `${prev.problemDescription}\n${result.problemDescription}` : result.problemDescription)
+                    : prev.problemDescription
+            }));
+
+            alert(`Escaneo completado. Se identificó: ${result.deviceModel || 'Dispositivo desconocido'}`);
+        } catch (error) {
+            console.error("[AI Scan] Error al escanear equipo:", error);
+            alert("No se pudo analizar la imagen. Intenta con otra foto o completa los campos manualmente.");
+        } finally {
+            setIsAnalyzing(false);
+            e.target.value = ''; // Resetear input
+        }
     };
 
     const handleSubmit = (e) => {
@@ -163,6 +197,34 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
                     <Smartphone className="mr-2 text-blue-500" size={20} />
                     Información del Equipo
                 </h3>
+
+                {/* Escáner de Equipo con IA */}
+                <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-700">Autocompletar Ingreso con Foto</h4>
+                            <p className="text-xs text-slate-500">Sube una foto del equipo o de su etiqueta/S/N para extraer la marca, modelo y serie usando IA.</p>
+                        </div>
+                        <label className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-all shadow-sm ${isAnalyzing ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <Camera size={18} />
+                            {isAnalyzing ? 'Analizando con IA...' : 'Subir Foto / Escanear'}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAiScan}
+                                disabled={isAnalyzing}
+                            />
+                        </label>
+                    </div>
+                    {isAnalyzing && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-indigo-600 font-medium animate-pulse">
+                            <span className="h-2 w-2 rounded-full bg-indigo-600 animate-ping"></span>
+                            Procesando imagen y extrayendo textos...
+                        </div>
+                    )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Dispositivo</label>
