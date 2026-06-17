@@ -205,16 +205,17 @@ export const analyzeDevicePhoto = async (imageFile) => {
             Analiza esta imagen de un dispositivo electrónico (especialmente cualquier etiqueta con especificaciones, marca, modelo, códigos de barra o pegatinas de inventario).
             
             Reglas de identificación:
-            1. Si el equipo no es comercial o estándar (ej. es un equipo armado a medida, caja de control industrial, equipo especial de laboratorio, etc.), indícalo describiendo su función o aspecto físico en "deviceModel" (ej. "Gabinete de control automatizado a medida" o "Equipo de laboratorio para pruebas físicas").
-            2. Busca activamente la frase o etiqueta de "Activo Fijo" o "ACTIVO FIJO". Si encuentras un código o número asociado a este término, extráelo y colócalo en el campo "accessPassword" con el formato: "Activo Fijo: [número]" (ej. "Activo Fijo: AF-2024-99"). Si no existe o no es visible, deja "accessPassword" vacío.
+            1. Si el equipo NO es convencional o comercial (ej. es un equipo armado a medida para tareas específicas, caja de control industrial, equipo especial de laboratorio personalizado, etc.), debes dejar el campo "deviceModel" como una cadena vacía "" y también el campo "problemDescription" como una cadena vacía "" para que el usuario los ingrese manualmente de forma práctica.
+            2. Si el equipo SÍ es comercial y estándar (ej. laptop Dell, smartphone Samsung, etc.), identifica su marca y modelo en "deviceModel" de forma normal.
+            3. Busca activamente la frase o etiqueta de "Activo Fijo" o "ACTIVO FIJO". Si encuentras un código o número asociado a este término, extráelo y colócalo en el campo "accessPassword" con el formato: "Activo Fijo: [código]". Si no existe o no es visible, deja "accessPassword" vacío.
             
-            Identifica y extrae los datos. Responde ÚNICAMENTE en formato JSON válido como este ejemplo (sin formato markdown de código de bloque, sin prefijos ni sufijos):
+            Identifica y extrae los datos. Responde ÚNICAMENTE en formato JSON válido (sin delimitadores de markdown de código de bloque, sin prefijos ni sufijos):
             {
-              "deviceType": "Laptop",
-              "deviceModel": "Modelo detallado (o nombre/función del equipo especial o armado)",
-              "deviceSerial": "Número de serie o S/N (sin espacios ni guiones innecesarios, ej. NXH21AL001)",
+              "deviceType": "Laptop" | "Smartphone" | "Cámara" | "SmartTV" | "Consola" | "Otro",
+              "deviceModel": "Modelo comercial estándar (o cadena vacía si es un equipo de manufactura especial/armado)",
+              "deviceSerial": "Número de serie o S/N (o cadena vacía si no se encuentra)",
               "accessPassword": "Activo Fijo: [código] (si se encuentra, de lo contrario cadena vacía)",
-              "problemDescription": "Daño o falla evidente a nivel físico visible en la imagen (o cadena vacía si no hay nada obvio)"
+              "problemDescription": "Daño físico evidente si el equipo es comercial estándar (o cadena vacía si el equipo es especial/armado o no hay daño obvio)"
             }
             
             El campo "deviceType" debe ser estrictamente uno de los siguientes valores: "Laptop", "Smartphone", "Cámara", "SmartTV", "Consola", "Otro".
