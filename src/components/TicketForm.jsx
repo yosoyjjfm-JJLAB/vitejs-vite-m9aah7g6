@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Save, User, Smartphone, AlertTriangle, Search, Building, Camera } from 'lucide-react';
 import { searchCustomers } from '../services/customerService';
-import { analyzeDevicePhoto } from '../services/aiService';
+import { analyzeDevicePhoto, resizeImage } from '../services/aiService';
 
 const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
     const [formData, setFormData] = useState({
@@ -64,12 +64,16 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        setScannedPhotoFile(file);
-        setScannedPhotoPreview(URL.createObjectURL(file));
         setIsAnalyzing(true);
         try {
+            console.log("[AI Scan] Comprimiendo imagen del equipo...");
+            const compressed = await resizeImage(file, 600, 600);
+            
+            setScannedPhotoFile(compressed);
+            setScannedPhotoPreview(URL.createObjectURL(compressed));
+
             console.log("[AI Scan] Iniciando análisis de foto del equipo...");
-            const result = await analyzeDevicePhoto(file);
+            const result = await analyzeDevicePhoto(compressed);
             console.log("[AI Scan] Resultado obtenido:", result);
 
             // Auto-rellenar campos obtenidos (incluyendo activo fijo en contraseña/patrón)

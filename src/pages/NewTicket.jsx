@@ -35,6 +35,7 @@ const NewTicket = () => {
             // 2. Guardar el Ticket en Firestore
             const ticketData = {
                 ...data,
+                photos: [], // Inicializar como arreglo vacío
                 // Aseguramos que customerCompany vaya en el ticket también para facilitar búsquedas
                 customerCompany: data.customerCompany || '',
                 createdAt: serverTimestamp(),

@@ -13,7 +13,7 @@ async function fileToDataUri(file) {
 }
 
 // Helper para redimensionar la imagen antes de enviarla (evita caídas por tamaño en el proxy de WebContainer)
-async function resizeImage(file, maxWidth = 600, maxHeight = 600) {
+export async function resizeImage(file, maxWidth = 600, maxHeight = 600) {
     return new Promise((resolve, reject) => {
         const image = new Image();
         const reader = new FileReader();
