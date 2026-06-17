@@ -252,12 +252,13 @@ const QuotePDF = ({ data }) => {
                             src={window.location.origin + '/logo.png'}
                             style={{ width: 100, height: 50, objectFit: 'contain', marginBottom: 5 }}
                         />
+                        <Text style={styles.logoText}>JJLAB</Text>
                         <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                         <View style={styles.companyInfo}>
                             <Text>Servicios de Electrónica y Tecnología</Text>
-                            <Text>Tel: +52 984 131 8433</Text>
-                            <Text>Email: jjlab2020@gmail.com</Text>
-                            <Text>RFC: FOMJ8708066X8</Text><Text>JOSE JUAN FLORES MARTINEZ</Text>
+                            <Text>Tel: +52 123 456 7890</Text>
+                            <Text>Email: contacto@jjlab.mx</Text>
+                            <Text>RFC: [TU-RFC-AQUÍ]</Text>
                         </View>
                     </View>
                     <View style={styles.invoiceInfo}>
@@ -283,6 +284,12 @@ const QuotePDF = ({ data }) => {
                         <View style={styles.clientRow}>
                             <Text style={styles.clientLabel}>PARA:</Text>
                             <Text style={[styles.clientValue, { fontWeight: 'bold' }]}>{data.customerCompany}</Text>
+                        </View>
+                    )}
+                    {data.customerName && (
+                        <View style={styles.clientRow}>
+                            <Text style={styles.clientLabel}>CLIENTE:</Text>
+                            <Text style={styles.clientValue}>{data.customerName}</Text>
                         </View>
                     )}
                     {data.place && (
@@ -316,10 +323,6 @@ const QuotePDF = ({ data }) => {
                         </View>
                     )}
 
-                    {/* Datos básicos si no se usan los campos arriba */}
-                    {!data.customerCompany && (
-                        <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{data.customerName}</Text>
-                    )}
                     <Text style={{ fontSize: 10, marginTop: 4 }}>{data.customerEmail}</Text>
                     <Text style={{ fontSize: 10 }}>{data.customerPhone}</Text>
                 </View>
@@ -397,7 +400,7 @@ const QuotePDF = ({ data }) => {
                 <View style={styles.terms}>
                     <Text style={styles.sectionTitle}>Términos y Condiciones</Text>
                     <Text style={{ fontSize: 9, color: '#64748b', lineHeight: 1.4 }}>
-                        {data.notes || 'Esta cotización tiene una validez de 30 días. Tiempos de entrega sujetos a disponibilidad de piezas.'}
+                        {data.notes || 'Esta cotización tiene una validez de 30 días. Los precios están sujetos a cambios sin previo aviso. Para confirmar el trabajo se requiere el 50% de anticipo. Tiempos de entrega sujetos a disponibilidad de piezas.'}
                     </Text>
                     {/* Link de búsqueda (Idea del usuario) - Si es útil imprimirlo */}
                     {/* <Text style={{ marginTop: 10, fontSize: 8, color: '#94a3b8' }}>Generado digitalmente por JJLAB Admin.</Text> */}

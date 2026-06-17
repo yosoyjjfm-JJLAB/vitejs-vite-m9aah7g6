@@ -17,6 +17,16 @@ const TicketDetail = () => {
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [saving, setSaving] = useState(false);
     const [estimating, setEstimating] = useState(false);
+    const [debouncedTicket, setDebouncedTicket] = useState(null);
+
+    // Debounce ticket data for "Live" PDF preview
+    useEffect(() => {
+        if (!ticket) return;
+        const timer = setTimeout(() => {
+            setDebouncedTicket(ticket);
+        }, 800); // 800ms debounce
+        return () => clearTimeout(timer);
+    }, [ticket]);
 
     // Cargar datos reales de Firestore
     useEffect(() => {
@@ -340,11 +350,11 @@ const TicketDetail = () => {
                 </div>
 
                 {/* Columna Derecha: Vista Previa del PDF */}
-                <div className="bg-slate-500 p-1 rounded-xl shadow-lg h-[600px] flex flex-col">
+                <div className="bg-slate-500 p-1 rounded-xl shadow-lg h-[800px] flex flex-col">
                     <div className="bg-slate-700 text-white p-2 rounded-t-lg flex justify-between items-center text-sm px-4">
-                        <span>Vista Previa (Se actualiza al guardar)</span>
+                        <span>Vista Previa (Se actualiza automáticamente)</span>
                         <PDFDownloadLink
-                            document={<PDFDocument data={ticket} />}
+                            document={<PDFDocument data={debouncedTicket || ticket} />}
                             fileName={`Dictamen_${ticket.id}.pdf`}
                             className="flex items-center gap-1 hover:text-blue-300 transition-colors"
                         >
@@ -355,8 +365,8 @@ const TicketDetail = () => {
                     </div>
 
                     <div className="flex-1 bg-slate-200 overflow-hidden rounded-b-lg relative">
-                        <PDFViewer width="100%" height="100%" showToolbar={false} className="border-none">
-                            <PDFDocument data={ticket} />
+                        <PDFViewer key={debouncedTicket ? JSON.stringify(debouncedTicket) : 'initial'} width="100%" height="100%" showToolbar={false} className="border-none">
+                            <PDFDocument data={debouncedTicket || ticket} />
                         </PDFViewer>
                     </div>
                 </div>

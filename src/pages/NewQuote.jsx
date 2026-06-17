@@ -569,8 +569,8 @@ const NewQuote = () => {
                                 <h3 className="text-sm font-bold text-slate-700 mb-2">Vista Previa</h3>
                                 {debouncedData && (
                                     <>
-                                        <div className="h-64 bg-slate-100 rounded border overflow-hidden">
-                                            <PDFViewer width="100%" height="100%" showToolbar={false} className="border-none">
+                                        <div className="h-[600px] bg-slate-100 rounded border overflow-hidden">
+                                            <PDFViewer key={JSON.stringify(debouncedData)} width="100%" height="100%" showToolbar={false} className="border-none">
                                                 <QuotePDF data={debouncedData} />
                                             </PDFViewer>
                                         </div>

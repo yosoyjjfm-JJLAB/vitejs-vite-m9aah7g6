@@ -4,4 +4,14 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api-zen': {
+        target: 'https://opencode.ai',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api-zen/, '/zen/v1')
+      }
+    }
+  }
 })
