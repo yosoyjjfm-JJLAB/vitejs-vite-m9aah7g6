@@ -57,23 +57,28 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
     };
 
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [scannedPhotoFile, setScannedPhotoFile] = useState(null);
+    const [scannedPhotoPreview, setScannedPhotoPreview] = useState('');
 
     const handleAiScan = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        setScannedPhotoFile(file);
+        setScannedPhotoPreview(URL.createObjectURL(file));
         setIsAnalyzing(true);
         try {
             console.log("[AI Scan] Iniciando análisis de foto del equipo...");
             const result = await analyzeDevicePhoto(file);
             console.log("[AI Scan] Resultado obtenido:", result);
 
-            // Auto-rellenar campos obtenidos
+            // Auto-rellenar campos obtenidos (incluyendo activo fijo en contraseña/patrón)
             setFormData(prev => ({
                 ...prev,
                 deviceType: result.deviceType || prev.deviceType,
                 deviceModel: result.deviceModel || prev.deviceModel,
                 deviceSerial: result.deviceSerial || prev.deviceSerial,
+                accessPassword: result.accessPassword || prev.accessPassword,
                 problemDescription: result.problemDescription 
                     ? (prev.problemDescription ? `${prev.problemDescription}\n${result.problemDescription}` : result.problemDescription)
                     : prev.problemDescription
@@ -85,13 +90,12 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
             alert("No se pudo analizar la imagen. Intenta con otra foto o completa los campos manualmente.");
         } finally {
             setIsAnalyzing(false);
-            e.target.value = ''; // Resetear input
         }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData);
+        onSubmit(formData, scannedPhotoFile);
     };
 
     return (
@@ -221,6 +225,19 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
                         <div className="mt-3 flex items-center gap-2 text-xs text-indigo-600 font-medium animate-pulse">
                             <span className="h-2 w-2 rounded-full bg-indigo-600 animate-ping"></span>
                             Procesando imagen y extrayendo textos...
+                        </div>
+                    )}
+                    {scannedPhotoPreview && (
+                        <div className="mt-4 flex items-center gap-4 bg-white p-3 rounded-lg border border-slate-100 shadow-sm max-w-md animate-fade-in">
+                            <img
+                                src={scannedPhotoPreview}
+                                alt="Vista previa del equipo"
+                                className="h-14 w-14 object-cover rounded-lg border border-slate-200"
+                            />
+                            <div className="flex-1">
+                                <p className="text-xs font-semibold text-slate-700">Foto del equipo cargada</p>
+                                <p className="text-[10px] text-slate-400">Esta imagen se guardará automáticamente en el reporte del ticket al registrarlo.</p>
+                            </div>
                         </div>
                     )}
                 </div>

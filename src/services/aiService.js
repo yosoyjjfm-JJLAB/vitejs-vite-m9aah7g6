@@ -200,22 +200,26 @@ export const analyzeDevicePhoto = async (imageFile) => {
         // 2. Convertir a Base64 Data URI
         const imageDataUri = await fileToDataUri(compressedFile);
 
-        // 3. Prompt estructurado para extraer JSON
         const prompt = `
             Actúa como un asistente técnico experto y un extractor de texto OCR de alta precisión.
-            Analiza esta imagen de un dispositivo electrónico (especialmente cualquier etiqueta con especificaciones, marca, modelo o códigos de barra visibles).
+            Analiza esta imagen de un dispositivo electrónico (especialmente cualquier etiqueta con especificaciones, marca, modelo, códigos de barra o pegatinas de inventario).
             
-            Identifica y extrae los datos requeridos. Responde ÚNICAMENTE en formato JSON válido como este ejemplo (sin formato markdown de código de bloque, sin prefijos ni sufijos):
+            Reglas de identificación:
+            1. Si el equipo no es comercial o estándar (ej. es un equipo armado a medida, caja de control industrial, equipo especial de laboratorio, etc.), indícalo describiendo su función o aspecto físico en "deviceModel" (ej. "Gabinete de control automatizado a medida" o "Equipo de laboratorio para pruebas físicas").
+            2. Busca activamente la frase o etiqueta de "Activo Fijo" o "ACTIVO FIJO". Si encuentras un código o número asociado a este término, extráelo y colócalo en el campo "accessPassword" con el formato: "Activo Fijo: [número]" (ej. "Activo Fijo: AF-2024-99"). Si no existe o no es visible, deja "accessPassword" vacío.
+            
+            Identifica y extrae los datos. Responde ÚNICAMENTE en formato JSON válido como este ejemplo (sin formato markdown de código de bloque, sin prefijos ni sufijos):
             {
               "deviceType": "Laptop",
-              "deviceModel": "Modelo detallado (ej. Lenovo ThinkPad L14 Gen 2)",
+              "deviceModel": "Modelo detallado (o nombre/función del equipo especial o armado)",
               "deviceSerial": "Número de serie o S/N (sin espacios ni guiones innecesarios, ej. NXH21AL001)",
+              "accessPassword": "Activo Fijo: [código] (si se encuentra, de lo contrario cadena vacía)",
               "problemDescription": "Daño o falla evidente a nivel físico visible en la imagen (o cadena vacía si no hay nada obvio)"
             }
             
             El campo "deviceType" debe ser estrictamente uno de los siguientes valores: "Laptop", "Smartphone", "Cámara", "SmartTV", "Consola", "Otro".
             
-            No incluyas explicaciones adicionales, devuelvo solo el texto JSON puro.
+            No incluyas explicaciones adicionales, devuelve solo el texto JSON puro.
         `;
 
         const response = await fetch(ZEN_API_ENDPOINT, {

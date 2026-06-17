@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TicketForm from '../components/TicketForm';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { saveCustomer } from '../services/customerService';
+import { uploadTicketPhoto } from '../services/storageService';
 
 const NewTicket = () => {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
-    const handleCreateTicket = async (data) => {
+    const handleCreateTicket = async (data, photoFile) => {
         setIsSubmitting(true);
         setError(null);
         try {
@@ -50,6 +51,20 @@ const NewTicket = () => {
 
             const docRef = await addDoc(collection(db, "tickets"), ticketData);
             console.log("Ticket escrito con ID: ", docRef.id);
+
+            // 3. Subir foto de escáner a Firebase Storage si existe
+            if (photoFile) {
+                try {
+                    console.log("[NewTicket] Subiendo foto de escáner...");
+                    const photoUrl = await uploadTicketPhoto(photoFile, docRef.id);
+                    await updateDoc(docRef, {
+                        photos: [photoUrl]
+                    });
+                    console.log("[NewTicket] Foto asociada al ticket correctamente:", photoUrl);
+                } catch (storageErr) {
+                    console.error("[NewTicket] Error al subir foto:", storageErr);
+                }
+            }
 
             alert('Ticket registrado exitosamente.');
             navigate('/'); // Redirigir al Dashboard
