@@ -254,7 +254,7 @@ const QuotePDF = ({ data }) => {
                         />
                         <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                         <View style={styles.companyInfo}>
-                            <Text>Servicios de Electrónica y Tecnología</Text>
+                            <Text>Servicios de Electrónica y Automatización</Text>
                             <Text>Tel: 984 131 8433</Text>
                             <Text>Email: jjlab2020@gmail.com</Text>
                             <Text>RFC: FOMJ8708066X8</Text>
