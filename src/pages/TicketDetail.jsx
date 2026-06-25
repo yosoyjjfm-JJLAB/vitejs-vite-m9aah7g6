@@ -54,9 +54,18 @@ const TicketDetail = () => {
         setSaving(true);
         try {
             const docRef = doc(db, "tickets", id);
-            // Actualizamos solo los campos editables
+            // Actualizamos todos los campos editables
             await updateDoc(docRef, {
+                customerName: ticket.customerName || '',
                 customerCompany: ticket.customerCompany || '',
+                customerPuesto: ticket.customerPuesto || '',
+                customerEmail: ticket.customerEmail || '',
+                customerPhone: ticket.customerPhone || '',
+                deviceType: ticket.deviceType || 'Laptop',
+                deviceModel: ticket.deviceModel || '',
+                deviceSerial: ticket.deviceSerial || '',
+                accessPassword: ticket.accessPassword || '',
+                problemDescription: ticket.problemDescription || '',
                 diagnosis: ticket.diagnosis || '',
                 solution: ticket.solution || '',
                 photos: ticket.photos || [],
@@ -228,40 +237,118 @@ const TicketDetail = () => {
 
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase">Cliente</label>
-                                <p className="text-slate-800 font-medium">{ticket.customerName}</p>
-                                {/* Campo Edición Empresa */}
-                                <div className="flex items-center gap-2 mt-1">
-                                    <Building size={14} className="text-slate-400" />
-                                    <input
-                                        className="text-sm text-slate-600 border-b border-transparent focus:border-blue-500 outline-none w-full"
-                                        placeholder="Agregar Empresa..."
-                                        value={ticket.customerCompany || ''}
-                                        onChange={(e) => setTicket({ ...ticket, customerCompany: e.target.value })}
-                                    />
-                                </div>
-                                <p className="text-sm text-slate-500 mt-1">{ticket.customerEmail} • {ticket.customerPhone}</p>
-                                {/* Campo CC Emails */}
-                                <div className="mt-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">CC Correos (Separa con comas)</label>
-                                    <input
-                                        className="text-xs text-slate-600 border rounded p-1 w-full bg-slate-50"
-                                        placeholder="jefe@empresa.com, socio@empresa.com"
-                                        value={ticket.ccEmails || ''}
-                                        onChange={(e) => setTicket({ ...ticket, ccEmails: e.target.value })}
-                                    />
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Datos del Cliente</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Nombre Completo</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            value={ticket.customerName || ''}
+                                            onChange={(e) => setTicket({ ...ticket, customerName: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Empresa</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            placeholder="Agregar Empresa..."
+                                            value={ticket.customerCompany || ''}
+                                            onChange={(e) => setTicket({ ...ticket, customerCompany: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Puesto</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            placeholder="Ej. Gerente de TI"
+                                            value={ticket.customerPuesto || ''}
+                                            onChange={(e) => setTicket({ ...ticket, customerPuesto: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Email</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            value={ticket.customerEmail || ''}
+                                            onChange={(e) => setTicket({ ...ticket, customerEmail: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Teléfono</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            value={ticket.customerPhone || ''}
+                                            onChange={(e) => setTicket({ ...ticket, customerPhone: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">CC Correos (separados por comas)</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            placeholder="jefe@empresa.com, socio@empresa.com"
+                                            value={ticket.ccEmails || ''}
+                                            onChange={(e) => setTicket({ ...ticket, ccEmails: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase">Datos del Equipo</label>
-                                <p className="text-slate-800">{ticket.deviceType} - {ticket.deviceModel}</p>
-                                <p className="text-sm text-slate-500">S/N: {ticket.deviceSerial}</p>
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Datos del Equipo</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Tipo de Dispositivo</label>
+                                        <select
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            value={ticket.deviceType || 'Laptop'}
+                                            onChange={(e) => setTicket({ ...ticket, deviceType: e.target.value })}
+                                        >
+                                            <option value="Laptop">Laptop</option>
+                                            <option value="Smartphone">Smartphone/Tablet</option>
+                                            <option value="Cámara">Cámara/Objetivo</option>
+                                            <option value="SmartTV">Smart TV</option>
+                                            <option value="Consola">Consola de Videojuegos</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Marca / Modelo</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            value={ticket.deviceModel || ''}
+                                            onChange={(e) => setTicket({ ...ticket, deviceModel: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Número de Serie</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            placeholder="S/N..."
+                                            value={ticket.deviceSerial || ''}
+                                            onChange={(e) => setTicket({ ...ticket, deviceSerial: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Contraseña / Patrón</label>
+                                        <input
+                                            className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-blue-500 outline-none"
+                                            placeholder="Ninguna..."
+                                            value={ticket.accessPassword || ''}
+                                            onChange={(e) => setTicket({ ...ticket, accessPassword: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Falla Reportada</label>
-                                <p className="text-sm text-slate-700 mt-1">{ticket.problemDescription}</p>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Falla Reportada</label>
+                                <textarea
+                                    className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white"
+                                    rows="3"
+                                    value={ticket.problemDescription || ''}
+                                    onChange={(e) => setTicket({ ...ticket, problemDescription: e.target.value })}
+                                    placeholder="Describe detalladamente la falla reportada..."
+                                ></textarea>
                             </div>
 
                             <div>

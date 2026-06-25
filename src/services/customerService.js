@@ -55,6 +55,7 @@ export const saveCustomer = async (customerData) => {
     const dataToSave = {
         name: customerData.name,
         company: customerData.company || '', // Nuevo campo Empresa
+        puesto: customerData.puesto || '',
         email: customerData.email,
         phone: customerData.phone,
         lastVisit: serverTimestamp(),

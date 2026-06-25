@@ -144,6 +144,9 @@ const PDFDocument = ({ data }) => (
                     {data.customerCompany && (
                         <Text style={[styles.text, { fontWeight: 'bold' }]}>{data.customerCompany}</Text>
                     )}
+                    {data.customerPuesto && (
+                        <Text style={[styles.text, { color: '#64748b' }]}>{data.customerPuesto}</Text>
+                    )}
                     <Text style={styles.text}>{data.customerEmail}</Text>
                     <Text style={styles.text}>{data.customerPhone}</Text>
                 </View>

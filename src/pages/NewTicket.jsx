@@ -19,6 +19,7 @@ const NewTicket = () => {
             const customerData = {
                 name: data.customerName,
                 company: data.customerCompany,
+                puesto: data.customerPuesto || '',
                 email: data.customerEmail,
                 phone: data.customerPhone
             };
@@ -38,6 +39,7 @@ const NewTicket = () => {
                 photos: [], // Inicializar como arreglo vacío
                 // Aseguramos que customerCompany vaya en el ticket también para facilitar búsquedas
                 customerCompany: data.customerCompany || '',
+                customerPuesto: data.customerPuesto || '',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 status: 'Pendiente',

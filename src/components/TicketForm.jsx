@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, User, Smartphone, AlertTriangle, Search, Building, Camera } from 'lucide-react';
+import { Save, User, Smartphone, AlertTriangle, Search, Building, Camera, Briefcase } from 'lucide-react';
 import { searchCustomers } from '../services/customerService';
 import { analyzeDevicePhoto, resizeImage } from '../services/aiService';
 
@@ -7,6 +7,7 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
     const [formData, setFormData] = useState({
         customerName: initialData.customerName || '',
         customerCompany: initialData.customerCompany || '', // Nuevo campo
+        customerPuesto: initialData.customerPuesto || '',
         customerEmail: initialData.customerEmail || '',
         customerPhone: initialData.customerPhone || '',
         deviceType: initialData.deviceType || 'Laptop',
@@ -49,6 +50,7 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
             ...prev,
             customerName: customer.name || '',
             customerCompany: customer.company || '', // Auto-rellenar empresa
+            customerPuesto: customer.puesto || '', // Auto-rellenar puesto
             customerEmail: customer.email || '',
             customerPhone: customer.phone || ''
         }));
@@ -173,6 +175,18 @@ const TicketForm = ({ initialData = {}, onSubmit, isSubmitting }) => {
                             onChange={handleChange}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                             placeholder="Ej. JJLAB S.A. de C.V."
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                            <Briefcase size={14} /> Puesto (Opcional)
+                        </label>
+                        <input
+                            name="customerPuesto"
+                            value={formData.customerPuesto}
+                            onChange={handleChange}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Ej. Gerente de TI / Operador"
                         />
                     </div>
                     <div>
