@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
 
 const PDFDocument = ({ data }) => (
     <Document>
+        {/* PÁGINA 1: Diagnóstico y Recepción */}
         <Page size="A4" style={styles.page}>
 
             {/* Header */}
@@ -198,6 +199,38 @@ const PDFDocument = ({ data }) => (
                 <Text style={[styles.label, { marginBottom: 4 }]}>DIAGNÓSTICO TÉCNICO:</Text>
                 <Text style={styles.text}>{data.diagnosis || 'Pendiente de diagnóstico final.'}</Text>
             </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                    JJLAB Tecnología Creativa
+                </Text>
+            </View>
+        </Page>
+
+        {/* PÁGINA 2: Solución y Cierre */}
+        <Page size="A4" style={styles.page}>
+
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={styles.logoSection}>
+                    <Image
+                        src={window.location.origin + '/logo.png'}
+                        style={{ width: 120, height: 60, objectFit: 'contain', marginBottom: 5 }}
+                    />
+                    <Text style={styles.subLogoText}>Tecnología Creativa</Text>
+                </View>
+                <View style={styles.invoiceInfo}>
+                    <Text style={[styles.label, { color: '#3b82f6', fontWeight: 'bold' }]}>{data.serviceType?.toUpperCase() || 'SERVICIO TÉCNICO'}</Text>
+                    <Text style={styles.label}>DICTAMEN TÉCNICO NO.</Text>
+                    <Text style={styles.value}>#{data.id ? data.id.slice(-6).toUpperCase() : 'BORRADOR'}</Text>
+                    <Text style={styles.label}>FECHA DE EMISIÓN</Text>
+                    <Text style={styles.value}>{new Date().toLocaleDateString()}</Text>
+                </View>
+            </View>
+
+            {/* Solution Section */}
+            <Text style={styles.sectionTitle}>Solución y Cierre</Text>
 
             <View style={{ marginBottom: 15 }}>
                 <Text style={[styles.label, { marginBottom: 4 }]}>SOLUCIÓN APLICADA / RECOMENDADA:</Text>
