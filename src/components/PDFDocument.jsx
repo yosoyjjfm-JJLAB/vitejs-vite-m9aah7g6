@@ -105,6 +105,34 @@ const styles = StyleSheet.create({
     footerText: {
         fontSize: 9,
         color: '#94a3b8',
+    },
+    signatureContainer: {
+        marginTop: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    signatureImg: {
+        width: 140,
+        height: 50,
+        objectFit: 'contain',
+        marginBottom: 5,
+    },
+    signatureLine: {
+        width: 180,
+        borderTopWidth: 1,
+        borderTopColor: '#94a3b8',
+        paddingTop: 4,
+        alignItems: 'center',
+    },
+    signatureName: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: '#1e293b',
+    },
+    signatureRole: {
+        fontSize: 7,
+        color: '#64748b',
+        marginTop: 1,
     }
 });
 
@@ -187,6 +215,24 @@ const PDFDocument = ({ data }) => (
             <View style={styles.statusBadge}>
                 <Text style={styles.statusText}>ESTADO: {data.status?.toUpperCase()}</Text>
             </View>
+
+            {/* Signature Section */}
+            {data.showSignature && (
+                <View style={styles.signatureContainer} wrap={false}>
+                    <Image
+                        src={window.location.origin + '/firma.png'}
+                        style={styles.signatureImg}
+                    />
+                    <View style={styles.signatureLine}>
+                        <Text style={styles.signatureName}>
+                            {data.technicianName || 'José Juan Flores Martinez'}
+                        </Text>
+                        <Text style={styles.signatureRole}>
+                            {data.technicianRole || 'Tecnico emisor'}
+                        </Text>
+                    </View>
+                </View>
+            )}
 
             {/* Footer */}
             <View style={styles.footer}>

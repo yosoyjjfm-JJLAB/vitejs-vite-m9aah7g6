@@ -72,7 +72,10 @@ const TicketDetail = () => {
                 status: ticket.status || 'Pendiente',
                 estimatedLife: ticket.estimatedLife || '',
                 serviceType: ticket.serviceType || 'Mantenimiento Correctivo',
-                ccEmails: ticket.ccEmails || ''
+                ccEmails: ticket.ccEmails || '',
+                showSignature: ticket.showSignature || false,
+                technicianName: ticket.technicianName || 'José Juan Flores Martinez',
+                technicianRole: ticket.technicianRole || 'Tecnico emisor'
             });
             alert('Cambios guardados correctamente');
         } catch (error) {
@@ -390,6 +393,42 @@ const TicketDetail = () => {
                                     value={ticket.estimatedLife || ''}
                                     onChange={(e) => setTicket({ ...ticket, estimatedLife: e.target.value })}
                                 ></textarea>
+                            </div>
+
+                            {/* Firma del Técnico */}
+                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                        checked={ticket.showSignature || false}
+                                        onChange={(e) => setTicket({ ...ticket, showSignature: e.target.checked })}
+                                    />
+                                    <span>Incluir mi Firma en el Dictamen</span>
+                                </label>
+
+                                {ticket.showSignature && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                                        <div>
+                                            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Nombre del Técnico</label>
+                                            <input
+                                                type="text"
+                                                className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-indigo-500 outline-none"
+                                                value={ticket.technicianName ?? 'José Juan Flores Martinez'}
+                                                onChange={(e) => setTicket({ ...ticket, technicianName: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-semibold text-slate-400 uppercase block mb-1">Cargo / Puesto</label>
+                                            <input
+                                                type="text"
+                                                className="text-sm text-slate-800 border rounded p-1.5 w-full bg-white border-slate-200 focus:border-indigo-500 outline-none"
+                                                value={ticket.technicianRole ?? 'Tecnico emisor'}
+                                                onChange={(e) => setTicket({ ...ticket, technicianRole: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* FOTOS */}
