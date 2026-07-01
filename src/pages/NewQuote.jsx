@@ -7,7 +7,7 @@ import QuotePDF from '../components/QuotePDF';
 import { sendQuoteEmail } from '../services/emailService';
 import { suggestItemDetails } from '../services/aiService';
 import { uploadPDF, uploadQuoteImage } from '../services/storageService';
-import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator, ArrowLeft, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Wand2, Save, Mail, FileText, Search, Calculator, ArrowLeft, Upload, Loader2, Eye } from 'lucide-react';
 
 const NewQuote = () => {
     const { id } = useParams(); // Get ID from URL if editing
@@ -264,6 +264,38 @@ const NewQuote = () => {
             alert("Hubo un error: " + error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePreviewInNewTab = async () => {
+        try {
+            const quoteData = {
+                quoteNumber: id ? id.slice(-6).toUpperCase() : 'BORRADOR',
+                createdAt: new Date(),
+                customerName: customer.name || 'Cliente',
+                customerCompany: customer.company,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                items: items,
+                subtotal: subtotal,
+                taxRate: settings.taxRate / 100,
+                taxAmount: taxAmount,
+                total: total,
+                notes: settings.notes,
+                validUntil: settings.validUntil,
+                attentionTo: customer.attentionTo,
+                from: customer.from,
+                workName: customer.workName,
+                location: customer.location,
+                place: customer.place,
+                referenceNumber: settings.referenceNumber
+            };
+            const blob = await pdf(<QuotePDF data={quoteData} />).toBlob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error("Error al previsualizar cotización:", error);
+            alert("No se pudo previsualizar la cotización. Revisa la consola.");
         }
     };
 
@@ -574,7 +606,13 @@ const NewQuote = () => {
                                                 <QuotePDF data={debouncedData} />
                                             </PDFViewer>
                                         </div>
-                                        <div className="text-center mt-2">
+                                        <div className="flex justify-center gap-4 mt-2">
+                                            <button
+                                                onClick={handlePreviewInNewTab}
+                                                className="text-xs text-indigo-600 hover:text-indigo-800 underline flex items-center justify-center gap-1 bg-transparent border-none cursor-pointer"
+                                            >
+                                                <Eye size={12} /> Ver en pestaña nueva
+                                            </button>
                                             <PDFDownloadLink
                                                 document={<QuotePDF data={debouncedData} />}
                                                 fileName="cotizacion.pdf"

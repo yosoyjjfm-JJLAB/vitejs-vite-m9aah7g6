@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
-import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building } from 'lucide-react';
+import { ArrowLeft, Mail, Download, Save, Camera, Trash2, Building, Eye, ExternalLink } from 'lucide-react';
 import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
 import { uploadPDF, uploadTicketPhoto } from '../services/storageService';
 import { estimateLifespan } from '../services/aiService';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const TicketDetail = () => {
@@ -18,6 +18,8 @@ const TicketDetail = () => {
     const [saving, setSaving] = useState(false);
     const [estimating, setEstimating] = useState(false);
     const [debouncedTicket, setDebouncedTicket] = useState(null);
+    const [deviceHistory, setDeviceHistory] = useState([]);
+    const [repairCount, setRepairCount] = useState(1);
 
     // Debounce ticket data for "Live" PDF preview
     useEffect(() => {
@@ -28,6 +30,44 @@ const TicketDetail = () => {
         return () => clearTimeout(timer);
     }, [ticket]);
 
+    const fetchDeviceHistory = async (currentTicket) => {
+        try {
+            const q = query(collection(db, "tickets"));
+            const querySnapshot = await getDocs(q);
+            const allTickets = [];
+            querySnapshot.forEach((doc) => {
+                allTickets.push({ id: doc.id, ...doc.data() });
+            });
+
+            // Ordenar por fecha desc (más reciente primero)
+            allTickets.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+                return dateB - dateA;
+            });
+
+            // Filtrar tickets para este equipo
+            const history = allTickets.filter(t => {
+                // Excluir el ticket actual de la lista de historial previo
+                if (t.id === currentTicket.id) return false;
+
+                // Si ambos tienen número de serie y no es vacío, comparar por número de serie
+                if (currentTicket.deviceSerial && t.deviceSerial && currentTicket.deviceSerial.trim() !== '' && t.deviceSerial.trim() !== '') {
+                    return t.deviceSerial.trim().toLowerCase() === currentTicket.deviceSerial.trim().toLowerCase();
+                }
+
+                // De lo contrario, comparar por nombre del cliente y modelo de equipo
+                return t.customerName?.trim().toLowerCase() === currentTicket.customerName?.trim().toLowerCase() &&
+                       t.deviceModel?.trim().toLowerCase() === currentTicket.deviceModel?.trim().toLowerCase();
+            });
+
+            setDeviceHistory(history);
+            setRepairCount(history.length + 1);
+        } catch (error) {
+            console.error("Error fetching device history:", error);
+        }
+    };
+
     // Cargar datos reales de Firestore
     useEffect(() => {
         const fetchTicket = async () => {
@@ -36,7 +76,9 @@ const TicketDetail = () => {
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    setTicket({ id: docSnap.id, ...docSnap.data() });
+                    const ticketData = { id: docSnap.id, ...docSnap.data() };
+                    setTicket(ticketData);
+                    await fetchDeviceHistory(ticketData);
                 } else {
                     console.error("No such document!");
                 }
@@ -77,9 +119,10 @@ const TicketDetail = () => {
                 technicianName: ticket.technicianName || 'José Juan Flores Martinez',
                 technicianRole: ticket.technicianRole || 'Tecnico emisor'
             });
-            alert('Cambios guardados correctamente');
+
+            alert("Cambios guardados exitosamente");
         } catch (error) {
-            console.error("Error updating ticket:", error);
+            console.error("Error saving changes:", error);
             alert("Error al guardar cambios");
         } finally {
             setSaving(false);
@@ -101,6 +144,17 @@ const TicketDetail = () => {
         } catch (error) {
             console.error("Error al generar/enviar PDF:", error);
             setEmailStatus('error');
+        }
+    };
+
+    const handlePreviewInNewTab = async () => {
+        try {
+            const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error("Error al previsualizar PDF:", error);
+            alert("No se pudo previsualizar el PDF. Revisa la consola.");
         }
     };
 
@@ -194,9 +248,15 @@ const TicketDetail = () => {
                 </Link>
                 <div className="flex gap-2">
                     <button
+                        onClick={handlePreviewInNewTab}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                        <Eye size={18} /> Previsualizar PDF (Nueva Pestaña)
+                    </button>
+                    <button
                         onClick={handleSendEmail}
                         disabled={emailStatus === 'sending'}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
                         {emailStatus === 'sending' ? 'Enviando...' : emailStatus === 'success' ? 'Enviado!' : <><Mail size={18} /> Enviar PDF por Correo</>}
                     </button>
@@ -211,6 +271,11 @@ const TicketDetail = () => {
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Detalles del Servicio</h2>
                                 <p className="text-sm text-slate-400">ID: {ticket.id}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${repairCount > 1 ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-700'}`}>
+                                        Ingreso #{repairCount} {repairCount > 1 && `(${repairCount - 1} anterior${repairCount - 1 > 1 ? 'es' : ''})`}
+                                    </span>
+                                </div>
                                 {/* Selector Tipo de Servicio */}
                                 <select
                                     className="mt-1 text-xs font-semibold bg-blue-50 text-blue-700 border-none rounded focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer p-1"
@@ -479,15 +544,24 @@ const TicketDetail = () => {
                 <div className="bg-slate-500 p-1 rounded-xl shadow-lg h-[800px] flex flex-col">
                     <div className="bg-slate-700 text-white p-2 rounded-t-lg flex justify-between items-center text-sm px-4">
                         <span>Vista Previa (Se actualiza automáticamente)</span>
-                        <PDFDownloadLink
-                            document={<PDFDocument data={debouncedTicket || ticket} />}
-                            fileName={`Dictamen_${ticket.id}.pdf`}
-                            className="flex items-center gap-1 hover:text-blue-300 transition-colors"
-                        >
-                            {({ blob, url, loading, error }) =>
-                                loading ? 'Generando...' : <><Download size={16} /> Descargar PDF</>
-                            }
-                        </PDFDownloadLink>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={handlePreviewInNewTab}
+                                className="flex items-center gap-1 hover:text-blue-300 transition-colors bg-transparent border-none cursor-pointer text-sm font-medium"
+                                title="Abrir en pestaña nueva"
+                            >
+                                <ExternalLink size={16} /> Ver en pestaña nueva
+                            </button>
+                            <PDFDownloadLink
+                                document={<PDFDocument data={debouncedTicket || ticket} />}
+                                fileName={`Dictamen_${ticket.id}.pdf`}
+                                className="flex items-center gap-1 hover:text-blue-300 transition-colors"
+                            >
+                                {({ blob, url, loading, error }) =>
+                                    loading ? 'Generando...' : <><Download size={16} /> Descargar PDF</>
+                                }
+                            </PDFDownloadLink>
+                        </div>
                     </div>
 
                     <div className="flex-1 bg-slate-200 overflow-hidden rounded-b-lg relative">
@@ -496,6 +570,81 @@ const TicketDetail = () => {
                         </PDFViewer>
                     </div>
                 </div>
+            </div>
+
+            {/* Expediente Histórico del Equipo */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mt-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2">
+                    <Building className="text-blue-500" size={20} />
+                    Expediente Histórico del Equipo
+                </h3>
+                {deviceHistory.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Folio / ID</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha de Ingreso</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Servicio</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Falla Reportada</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Diagnóstico / Solución</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                                    <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-slate-100">
+                                {deviceHistory.map((prevTicket) => {
+                                    const prevDate = prevTicket.createdAt?.toDate ? prevTicket.createdAt.toDate().toLocaleDateString('es-MX') : new Date(prevTicket.createdAt || 0).toLocaleDateString('es-MX');
+                                    return (
+                                        <tr key={prevTicket.id} className="hover:bg-slate-50 transition-colors text-sm">
+                                            <td className="px-4 py-3 font-medium text-slate-900">
+                                                #{prevTicket.id.slice(0, 8)}...
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-500">
+                                                {prevDate}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                                                    {prevTicket.serviceType || 'Mantenimiento Correctivo'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={prevTicket.problemDescription}>
+                                                {prevTicket.problemDescription}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-600 max-w-[250px] truncate">
+                                                <div className="font-medium text-slate-700">Diag: {prevTicket.diagnosis || '---'}</div>
+                                                <div className="text-xs text-slate-500">Sol: {prevTicket.solution || '---'}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                    prevTicket.status === 'Finalizado' || prevTicket.status === 'Listo' || prevTicket.status === 'Entregado'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : prevTicket.status === 'Pendiente'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : 'bg-blue-100 text-blue-800'
+                                                }`}>
+                                                    {prevTicket.status || 'Pendiente'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Link 
+                                                    to={`/ticket/${prevTicket.id}`}
+                                                    className="text-blue-600 hover:text-blue-900 inline-flex items-center gap-1 font-semibold"
+                                                >
+                                                    <Eye size={14} /> Ver Expediente
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-slate-500 text-sm text-center py-4 bg-slate-50 rounded-lg">
+                        Este es el primer ingreso registrado para este equipo (sin antecedentes en la base de datos).
+                    </p>
+                )}
             </div>
         </div>
     );
