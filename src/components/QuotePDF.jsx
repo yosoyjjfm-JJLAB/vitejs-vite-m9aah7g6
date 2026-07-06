@@ -252,12 +252,14 @@ const QuotePDF = ({ data }) => {
                             src={window.location.origin + '/logo.png'}
                             style={{ width: 100, height: 50, objectFit: 'contain', marginBottom: 5 }}
                         />
+                        <Text style={styles.logoText}>JJLAB</Text>
                         <Text style={styles.subLogoText}>Tecnología Creativa</Text>
                         <View style={styles.companyInfo}>
                             <Text>Servicios de Electrónica y Automatización</Text>
                             <Text>Tel: 984 131 8433</Text>
                             <Text>Email: jjlab2020@gmail.com</Text>
                             <Text>RFC: FOMJ8708066X8</Text>
+                            <Text>Razón Social: José Juan Flores Martinez</Text>
                         </View>
                     </View>
                     <View style={styles.invoiceInfo}>
