@@ -6,6 +6,7 @@ import PDFDocument from '../components/PDFDocument';
 import { sendTicketEmail } from '../services/emailService';
 import { uploadPDF, uploadTicketPhoto } from '../services/storageService';
 import { estimateLifespan } from '../services/aiService';
+import { getTicketPdfFileName } from '../services/formatService';
 import { doc, getDoc, updateDoc, collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -554,7 +555,7 @@ const TicketDetail = () => {
                             </button>
                             <PDFDownloadLink
                                 document={<PDFDocument data={debouncedTicket || ticket} />}
-                                fileName={`Dictamen_${ticket.id}.pdf`}
+                                fileName={getTicketPdfFileName(debouncedTicket || ticket)}
                                 className="flex items-center gap-1 hover:text-blue-300 transition-colors"
                             >
                                 {({ blob, url, loading, error }) =>

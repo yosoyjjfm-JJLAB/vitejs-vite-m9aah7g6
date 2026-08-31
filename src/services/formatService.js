@@ -142,3 +142,54 @@ function Millones(num) {
     if (strMillones === "") return strMiles;
     return strMillones + " " + strMiles;
 }
+
+/**
+ * Limpia una cadena de texto para que sea un nombre de archivo seguro
+ * removiendo caracteres inválidos en Windows/Mac/Linux.
+ */
+export const sanitizeFileName = (text) => {
+    if (!text) return '';
+    return text
+        .toString()
+        .trim()
+        .replace(/[/\\?%*:|"<>]/g, '-')
+        .replace(/\s+/g, '_')
+        .replace(/-+/g, '-')
+        .replace(/_+/g, '_');
+};
+
+/**
+ * Genera el nombre estandarizado para el archivo PDF del dictamen:
+ * Formato: Dictamen_[Marca/Modelo]_[NumeroDeSerie].pdf
+ * Si no tiene serie: Dictamen_[Marca/Modelo]_SinSerie_[FolioCorto].pdf
+ */
+export const getTicketPdfFileName = (ticket) => {
+    if (!ticket) return 'Dictamen.pdf';
+
+    let devicePart = '';
+    if (ticket.deviceModel && ticket.deviceModel.trim()) {
+        devicePart = ticket.deviceModel.trim();
+        if (ticket.deviceType && !devicePart.toLowerCase().includes(ticket.deviceType.toLowerCase())) {
+            devicePart = `${ticket.deviceType} ${devicePart}`;
+        }
+    } else if (ticket.deviceType && ticket.deviceType.trim()) {
+        devicePart = ticket.deviceType.trim();
+    } else if (ticket.device && ticket.device.trim()) {
+        devicePart = ticket.device.trim();
+    } else {
+        devicePart = 'Equipo';
+    }
+
+    const cleanDevice = sanitizeFileName(devicePart);
+
+    let serialPart = '';
+    if (ticket.deviceSerial && ticket.deviceSerial.trim()) {
+        serialPart = sanitizeFileName(ticket.deviceSerial.trim());
+    } else {
+        const shortId = ticket.id ? ticket.id.slice(-6).toUpperCase() : 'SN';
+        serialPart = `SinSerie_${shortId}`;
+    }
+
+    return `Dictamen_${cleanDevice}_${serialPart}.pdf`;
+};
+

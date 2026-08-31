@@ -3,18 +3,18 @@ import emailjs from 'emailjs-com';
 // Inicializa con tu Public Key de EmailJS
 emailjs.init("09tN9vhFRcwNh08qC");
 
-export const sendTicketEmail = async (ticketData, pdfUrl) => {
+export const sendTicketEmail = async (ticketData, pdfUrl, options = {}) => {
   try {
-    console.log('Enviando correo a:', ticketData.customerEmail);
+    const targetEmail = options.recipientEmail || ticketData.customerEmail;
+    console.log('Enviando correo a:', targetEmail);
 
     const templateParams = {
-      email: ticketData.customerEmail, // Cambiado de to_email porque tu template usa {{email}}
-      customer_name: ticketData.customerName,
-      device_model: ticketData.deviceModel,
-      service_type: ticketData.serviceType || 'Servicio Técnico', // Para el asunto
+      email: targetEmail, // Destinatario principal (personalizable)
+      customer_name: ticketData.customerName || ticketData.customer || 'Cliente',
+      device_model: options.deviceModel || ticketData.deviceModel || ticketData.device || 'Equipo',
+      service_type: options.serviceType || ticketData.serviceType || 'Servicio Técnico',
       pdf_link: pdfUrl,
-      cc_emails: ticketData.ccEmails, // Nuevo campo para CC
-      // Variables opcionales si las usaste en el template
+      cc_emails: options.ccEmails !== undefined ? options.ccEmails : (ticketData.ccEmails || ''),
       reply_to: "jjlab2020@gmail.com"
     };
 
@@ -24,12 +24,46 @@ export const sendTicketEmail = async (ticketData, pdfUrl) => {
       templateParams
     );
 
-
     console.log('Correo enviado con éxito!', response.status, response.text);
     return response;
 
   } catch (error) {
     console.error('Error al enviar correo:', error);
+    throw error;
+  }
+};
+
+export const sendBulkTicketEmail = async ({
+  recipientEmail,
+  customerName,
+  deviceSummary,
+  serviceType = 'Dictámenes Técnicos',
+  pdfLink,
+  ccEmails = ''
+}) => {
+  try {
+    console.log('Enviando correo masivo a:', recipientEmail);
+
+    const templateParams = {
+      email: recipientEmail,
+      customer_name: customerName || 'Cliente',
+      device_model: deviceSummary || 'Lote de Equipos',
+      service_type: serviceType,
+      pdf_link: pdfLink,
+      cc_emails: ccEmails,
+      reply_to: "jjlab2020@gmail.com"
+    };
+
+    const response = await emailjs.send(
+      'service_0dnuvku',
+      'template_c6bwmes',
+      templateParams
+    );
+
+    console.log('Correo masivo enviado con éxito!', response.status, response.text);
+    return response;
+  } catch (error) {
+    console.error('Error al enviar correo masivo:', error);
     throw error;
   }
 };

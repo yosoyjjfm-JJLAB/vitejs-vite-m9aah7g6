@@ -29,7 +29,7 @@ const Login = () => {
                             <input
                                 type="email"
                                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="jjlab2020@gmail.com"
+                                placeholder="admin@jjlab.com"
                             />
                         </div>
 
