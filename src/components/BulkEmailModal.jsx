@@ -3,32 +3,35 @@ import { Mail, X, CheckCircle, AlertCircle, Loader2, FileText, Layers, Send } fr
 import { pdf } from '@react-pdf/renderer';
 import PDFDocument from './PDFDocument';
 import CombinedPDFDocument from './CombinedPDFDocument';
-import { uploadFile } from '../services/storageService';
+import { uploadFile, uploadPDF } from '../services/storageService';
 import { sendTicketEmail, sendBulkTicketEmail } from '../services/emailService';
 import { getTicketPdfFileName } from '../services/formatService';
 
 const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }) => {
     const [recipientEmail, setRecipientEmail] = useState('');
     const [ccEmails, setCcEmails] = useState('');
-    const [sendMode, setSendMode] = useState('individual_links'); // 'individual_links' | 'unified_pdf' | 'separate_emails'
+    const [sendMode, setSendMode] = useState('unified_pdf'); // 'unified_pdf' | 'separate_emails'
     const [status, setStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
     const [progressMessage, setProgressMessage] = useState('');
     const [progressPercent, setProgressPercent] = useState(0);
     const [errorMessage, setErrorMessage] = useState('');
 
-    // Sugerir el correo del primer ticket al abrir
+    const total = selectedTickets.length;
+
+    // Sugerir el correo del cliente al abrir
     useEffect(() => {
         if (isOpen && selectedTickets.length > 0) {
             const firstEmail = selectedTickets.find(t => t.customerEmail)?.customerEmail || '';
             const firstCc = selectedTickets.find(t => t.ccEmails)?.ccEmails || '';
             setRecipientEmail(firstEmail);
             setCcEmails(firstCc);
+            setSendMode(total === 1 ? 'unified_pdf' : 'unified_pdf');
             setStatus('idle');
             setProgressMessage('');
             setProgressPercent(0);
             setErrorMessage('');
         }
-    }, [isOpen, selectedTickets]);
+    }, [isOpen, selectedTickets, total]);
 
     if (!isOpen || selectedTickets.length === 0) return null;
 
@@ -46,94 +49,75 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
         setProgressPercent(5);
 
         try {
-            const total = selectedTickets.length;
+            if (total === 1) {
+                // CASO 1 EQUIPO: Generar PDF individual y enviar correo directo con enlace limpio
+                const ticket = selectedTickets[0];
+                setProgressMessage(`Generando dictamen de ${ticket.deviceModel || ticket.device || 'Equipo'}...`);
+                setProgressPercent(30);
 
-            if (sendMode === 'unified_pdf') {
-                // MODALIDAD 1: 1 SOLO CORREO CON PDF UNIFICADO
-                setProgressMessage('Generando PDF unificado con todos los dictámenes...');
-                setProgressPercent(25);
+                const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
+                const fileName = getTicketPdfFileName(ticket);
+                const path = `dictamenes/${Date.now()}_${fileName}`;
 
-                const blob = await pdf(<CombinedPDFDocument tickets={selectedTickets} />).toBlob();
+                setProgressMessage('Subiendo PDF a almacenamiento...');
+                setProgressPercent(65);
 
-                setProgressMessage('Subiendo PDF unificado a almacenamiento...');
-                setProgressPercent(60);
-
-                const timestamp = Date.now();
-                const path = `dictamenes/dictamen_unificado_${timestamp}.pdf`;
-                const pdfUrl = await uploadFile(blob, path);
+                const pdfUrl = await uploadFile(blob, path, 'application/pdf');
 
                 setProgressMessage(`Enviando correo a ${recipientEmail}...`);
                 setProgressPercent(85);
 
-                const deviceSummary = total === 1 
-                    ? (selectedTickets[0].deviceModel || selectedTickets[0].device || 'Equipo')
-                    : `Lote de ${total} equipos (${selectedTickets.slice(0, 3).map(t => t.deviceModel || t.device || 'Equipo').join(', ')}${total > 3 ? '...' : ''})`;
-
-                await sendBulkTicketEmail({
+                await sendTicketEmail(ticket, pdfUrl, {
                     recipientEmail: recipientEmail.trim(),
-                    customerName: customerName,
-                    deviceSummary: deviceSummary,
-                    serviceType: 'Dictamen Técnico Consolidado',
-                    pdfLink: pdfUrl,
-                    ccEmails: ccEmails.trim()
+                    ccEmails: ccEmails.trim(),
+                    deviceModel: ticket.deviceModel || ticket.device || 'Equipo',
+                    serviceType: ticket.serviceType || 'Servicio Técnico'
                 });
 
                 setProgressPercent(100);
                 setStatus('success');
                 setTimeout(() => {
-                    if (onSendSuccess) onSendSuccess(`Dictamen unificado enviado con éxito a ${recipientEmail}`);
+                    if (onSendSuccess) onSendSuccess(`Dictamen enviado con éxito a ${recipientEmail}`);
                     onClose();
                 }, 1800);
 
-            } else if (sendMode === 'individual_links') {
-                // MODALIDAD 2: 1 SOLO CORREO CON ENLACES A CADA DICTAMEN INDIVIDUAL
-                const generatedLinks = [];
+            } else if (sendMode === 'unified_pdf') {
+                // CASO MÚLTIPLES EQUIPOS (MODALIDAD: 1 SOLO CORREO CON PDF UNIFICADO)
+                setProgressMessage(`Consolidando ${total} dictámenes en un solo PDF...`);
+                setProgressPercent(30);
 
-                for (let i = 0; i < total; i++) {
-                    const ticket = selectedTickets[i];
-                    const percent = 10 + Math.round(((i + 1) / total) * 70);
-                    setProgressPercent(percent);
-                    setProgressMessage(`Generando y subiendo dictamen ${i + 1} de ${total}: ${ticket.deviceModel || ticket.device || 'Equipo'}...`);
+                const blob = await pdf(<CombinedPDFDocument tickets={selectedTickets} />).toBlob();
+                const timestamp = Date.now();
+                const path = `dictamenes/dictamen_unificado_${timestamp}.pdf`;
 
-                    const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
-                    const fileName = getTicketPdfFileName(ticket);
-                    const path = `dictamenes/${Date.now()}_${fileName}`;
-                    const url = await uploadFile(blob, path);
+                setProgressMessage('Subiendo PDF unificado...');
+                setProgressPercent(70);
 
-                    generatedLinks.push({
-                        device: `${ticket.deviceModel || ticket.device || 'Equipo'} (Serie: ${ticket.deviceSerial || 'S/N'})`,
-                        url: url
-                    });
-                }
+                const pdfUrl = await uploadFile(blob, path, 'application/pdf');
 
-                setProgressMessage(`Enviando correo consolidado a ${recipientEmail}...`);
+                setProgressMessage(`Enviando correo a ${recipientEmail}...`);
                 setProgressPercent(90);
 
-                // Construir lista con formato claro de enlaces para el correo
-                const formattedLinksText = generatedLinks
-                    .map((item, idx) => `${idx + 1}. ${item.device}:\n${item.url}`)
-                    .join('\n\n');
-
-                const deviceSummary = `Lote de ${total} equipos (${selectedTickets.map(t => t.deviceModel || t.device || 'Equipo').slice(0, 3).join(', ')}${total > 3 ? '...' : ''})`;
+                const deviceSummary = `Lote de ${total} equipos (${selectedTickets.slice(0, 3).map(t => t.deviceModel || t.device || 'Equipo').join(', ')}${total > 3 ? '...' : ''})`;
 
                 await sendBulkTicketEmail({
                     recipientEmail: recipientEmail.trim(),
                     customerName: customerName,
                     deviceSummary: deviceSummary,
-                    serviceType: `Dictámenes Técnicos (${total} equipos)`,
-                    pdfLink: formattedLinksText,
+                    serviceType: `Dictamen Técnico Consolidado (${total} equipos)`,
+                    pdfLink: pdfUrl, // URL limpia directa para el botón del correo
                     ccEmails: ccEmails.trim()
                 });
 
                 setProgressPercent(100);
                 setStatus('success');
                 setTimeout(() => {
-                    if (onSendSuccess) onSendSuccess(`Enlaces de los ${total} dictámenes enviados a ${recipientEmail}`);
+                    if (onSendSuccess) onSendSuccess(`Dictamen unificado de los ${total} equipos enviado a ${recipientEmail}`);
                     onClose();
                 }, 1800);
 
             } else if (sendMode === 'separate_emails') {
-                // MODALIDAD 3: CORREOS INDIVIDUALES SEPARADOS AL MISMO DESTINATARIO
+                // CASO MÚLTIPLES EQUIPOS (MODALIDAD: CORREOS INDIVIDUALES SEPARADOS)
                 for (let i = 0; i < total; i++) {
                     const ticket = selectedTickets[i];
                     const percent = 10 + Math.round(((i + 1) / total) * 85);
@@ -143,11 +127,13 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                     const blob = await pdf(<PDFDocument data={ticket} />).toBlob();
                     const fileName = getTicketPdfFileName(ticket);
                     const path = `dictamenes/${Date.now()}_${fileName}`;
-                    const url = await uploadFile(blob, path);
+                    const pdfUrl = await uploadFile(blob, path, 'application/pdf');
 
-                    await sendTicketEmail(ticket, url, {
+                    await sendTicketEmail(ticket, pdfUrl, {
                         recipientEmail: recipientEmail.trim(),
-                        ccEmails: ccEmails.trim()
+                        ccEmails: ccEmails.trim(),
+                        deviceModel: ticket.deviceModel || ticket.device || 'Equipo',
+                        serviceType: ticket.serviceType || 'Servicio Técnico'
                     });
                 }
 
@@ -159,9 +145,9 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                 }, 1800);
             }
         } catch (error) {
-            console.error('Error en envío masivo por correo:', error);
+            console.error('Error en envío por correo:', error);
             setStatus('error');
-            setErrorMessage('Hubo un problema al generar o enviar los correos. Por favor verifica tu conexión y configuración de EmailJS.');
+            setErrorMessage('Hubo un problema al generar o enviar el correo. Verifica tu conexión y configuración.');
         }
     };
 
@@ -175,9 +161,11 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                             <Mail size={20} />
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-white">Enviar Dictámenes por Correo</h3>
+                            <h3 className="font-bold text-base text-white">
+                                {total === 1 ? 'Enviar Dictamen por Correo' : 'Enviar Dictámenes en Lote'}
+                            </h3>
                             <p className="text-xs text-slate-300">
-                                {selectedTickets.length} {selectedTickets.length === 1 ? 'equipo seleccionado' : 'equipos seleccionados'}
+                                {total} {total === 1 ? 'equipo seleccionado' : 'equipos seleccionados'}
                             </p>
                         </div>
                     </div>
@@ -196,7 +184,7 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                Equipos a despachar ({selectedTickets.length})
+                                {total === 1 ? 'Equipo a despachar' : `Equipos a despachar (${total})`}
                             </span>
                             <span className="text-xs text-blue-600 font-medium">
                                 Cliente: {customerName}
@@ -232,7 +220,7 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                                 onChange={(e) => setRecipientEmail(e.target.value)}
                             />
                             <p className="text-[11px] text-slate-500 mt-1">
-                                Puedes ingresar uno o varios correos separados por coma. Los correos guardados en los tickets individuales serán sustituidos por estos.
+                                Puedes ingresar uno o varios correos separados por coma.
                             </p>
                         </div>
 
@@ -251,97 +239,71 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                         </div>
                     </div>
 
-                    {/* Selección de Modalidad de Envío */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-2">
-                            Modalidad de Entrega
-                        </label>
-                        <div className="space-y-2">
-                            {/* Opción 1: Enlaces individuales en 1 correo */}
-                            <label
-                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                    sendMode === 'individual_links'
-                                        ? 'border-blue-500 bg-blue-50/50'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="sendMode"
-                                    value="individual_links"
-                                    checked={sendMode === 'individual_links'}
-                                    disabled={status === 'processing'}
-                                    onChange={(e) => setSendMode(e.target.value)}
-                                    className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div>
-                                    <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                        <Layers size={15} className="text-blue-600" />
-                                        1 Solo Correo con enlaces a cada Dictamen Individual
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        El destinatario recibe 1 solo correo con la lista de equipos y los enlaces directos para abrir cada PDF por separado.
-                                    </p>
-                                </div>
+                    {/* Selección de Modalidad de Envío (solo si hay más de 1 equipo) */}
+                    {total > 1 && (
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-2">
+                                Modalidad de Entrega para {total} Equipos
                             </label>
+                            <div className="space-y-2">
+                                {/* Opción 1: 1 PDF Unificado (Recomendado) */}
+                                <label
+                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                                        sendMode === 'unified_pdf'
+                                            ? 'border-blue-500 bg-blue-50/50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="sendMode"
+                                        value="unified_pdf"
+                                        checked={sendMode === 'unified_pdf'}
+                                        disabled={status === 'processing'}
+                                        onChange={(e) => setSendMode(e.target.value)}
+                                        className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div>
+                                        <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                            <FileText size={15} className="text-blue-600" />
+                                            1 Solo Correo con PDF Unificado Consolidado (Recomendado)
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            Genera un único documento PDF con todos los dictámenes y envía el enlace directo al botón del correo.
+                                        </p>
+                                    </div>
+                                </label>
 
-                            {/* Opción 2: 1 PDF Unificado */}
-                            <label
-                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                    sendMode === 'unified_pdf'
-                                        ? 'border-blue-500 bg-blue-50/50'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="sendMode"
-                                    value="unified_pdf"
-                                    checked={sendMode === 'unified_pdf'}
-                                    disabled={status === 'processing'}
-                                    onChange={(e) => setSendMode(e.target.value)}
-                                    className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div>
-                                    <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                        <FileText size={15} className="text-indigo-600" />
-                                        1 Solo Correo con 1 PDF Unificado Consolidado
+                                {/* Opción 2: Correos separados */}
+                                <label
+                                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                                        sendMode === 'separate_emails'
+                                            ? 'border-blue-500 bg-blue-50/50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="sendMode"
+                                        value="separate_emails"
+                                        checked={sendMode === 'separate_emails'}
+                                        disabled={status === 'processing'}
+                                        onChange={(e) => setSendMode(e.target.value)}
+                                        className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div>
+                                        <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                            <Mail size={15} className="text-slate-600" />
+                                            Correos individuales separados ({total} correos)
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            Envía un correo independiente para cada equipo hacia el destinatario especificado.
+                                        </p>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        Genera un único archivo PDF que contiene todas las hojas de todos los equipos y envía el enlace de descarga.
-                                    </p>
-                                </div>
-                            </label>
-
-                            {/* Opción 3: Correos separados */}
-                            <label
-                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                    sendMode === 'separate_emails'
-                                        ? 'border-blue-500 bg-blue-50/50'
-                                        : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="sendMode"
-                                    value="separate_emails"
-                                    checked={sendMode === 'separate_emails'}
-                                    disabled={status === 'processing'}
-                                    onChange={(e) => setSendMode(e.target.value)}
-                                    className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div>
-                                    <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                        <Mail size={15} className="text-slate-600" />
-                                        Correos individuales separados ({selectedTickets.length} correos)
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        Envía un correo individual por cada equipo hacia el destinatario especificado.
-                                    </p>
-                                </div>
-                            </label>
+                                </label>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Mensaje de error si falla */}
                     {errorMessage && (
@@ -401,7 +363,7 @@ const BulkEmailModal = ({ isOpen, onClose, selectedTickets = [], onSendSuccess }
                             ) : (
                                 <>
                                     <Send size={16} />
-                                    Enviar Dictámenes
+                                    Enviar {total === 1 ? 'Dictamen' : 'Dictámenes'}
                                 </>
                             )}
                         </button>
